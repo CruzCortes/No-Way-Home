@@ -4,6 +4,7 @@ using System.Collections.Generic;
 public class WorldGenerator : MonoBehaviour
 {
     public GameObject groundPrefab;
+    public GameObject playerPrefab;
     public Camera mainCamera;
     public Transform worldContainer;
     public float tileSize = 3.2f;
@@ -11,6 +12,7 @@ public class WorldGenerator : MonoBehaviour
     private int chunkSize = 16;
     private Vector2Int lastGeneratedChunk;
     private Dictionary<Vector2Int, GameObject> generatedTiles = new Dictionary<Vector2Int, GameObject>();
+    private GameObject player;
 
     void Start()
     {
@@ -21,6 +23,7 @@ public class WorldGenerator : MonoBehaviour
             worldContainer = transform;
 
         GenerateInitialWorld();
+        SpawnPlayer();
     }
 
     void Update()
@@ -32,6 +35,24 @@ public class WorldGenerator : MonoBehaviour
             lastGeneratedChunk = currentChunk;
         }
     }
+
+    void SpawnPlayer()
+    {
+        if (player == null)
+        {
+            Vector3 spawnPosition = new Vector3(0, 0, 0);
+            player = Instantiate(playerPrefab, spawnPosition, Quaternion.identity);
+            player.name = "Player";
+
+            // Set up camera follow
+            CameraFollow cameraFollow = mainCamera.GetComponent<CameraFollow>();
+            if (cameraFollow != null)
+            {
+                cameraFollow.target = player.transform;
+            }
+        }
+    }
+
 
     void GenerateInitialWorld()
     {
