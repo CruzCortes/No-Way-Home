@@ -8,7 +8,6 @@ public class WorldGenerator : MonoBehaviour
     public Camera mainCamera;
     public Transform worldContainer;
     public float tileSize = 3.2f;
-
     private int chunkSize = 16;
     private Vector2Int lastGeneratedChunk;
     private Dictionary<Vector2Int, GameObject> generatedTiles = new Dictionary<Vector2Int, GameObject>();
@@ -18,12 +17,11 @@ public class WorldGenerator : MonoBehaviour
     {
         if (mainCamera == null)
             mainCamera = Camera.main;
-
         if (worldContainer == null)
             worldContainer = transform;
 
+        SetupPlayer();
         GenerateInitialWorld();
-        SpawnPlayer();
     }
 
     void Update()
@@ -36,23 +34,25 @@ public class WorldGenerator : MonoBehaviour
         }
     }
 
-    void SpawnPlayer()
+    void SetupPlayer()
     {
-        if (player == null)
-        {
-            Vector3 spawnPosition = new Vector3(0, 0, 0);
-            player = Instantiate(playerPrefab, spawnPosition, Quaternion.identity);
-            player.name = "Player";
+        player = GameObject.Find("Player");
 
-            // Set up camera follow
+        if (player != null)
+        {
+            player.transform.position = Vector3.zero;
+
             CameraFollow cameraFollow = mainCamera.GetComponent<CameraFollow>();
             if (cameraFollow != null)
             {
                 cameraFollow.target = player.transform;
             }
         }
+        else
+        {
+            Debug.LogError("Player object not found in the scene. Make sure there's a GameObject named 'Player' in the hierarchy.");
+        }
     }
-
 
     void GenerateInitialWorld()
     {
@@ -62,7 +62,6 @@ public class WorldGenerator : MonoBehaviour
     void GenerateChunksAroundCamera()
     {
         Vector2Int currentChunk = GetCurrentChunk();
-
         for (int y = -1; y <= 1; y++)
         {
             for (int x = -1; x <= 1; x++)
@@ -95,17 +94,14 @@ public class WorldGenerator : MonoBehaviour
                     chunkPosition.x * chunkSize + x,
                     chunkPosition.y * chunkSize + y
                 );
-
                 if (!IsTilePresent(tilePosition))
                 {
                     Vector3 worldPosition = new Vector3(tilePosition.x * tileSize, tilePosition.y * tileSize, 0);
                     GameObject tile = Instantiate(groundPrefab, worldPosition, Quaternion.identity, worldContainer);
                     tile.name = $"GroundTile_{tilePosition.x}_{tilePosition.y}";
 
-                    // Generate a unique seed for this tile
                     long seed = tilePosition.x + tilePosition.y * 10000L;
 
-                    // Apply the seed to the material
                     Renderer renderer = tile.GetComponent<Renderer>();
                     if (renderer != null && renderer.material != null)
                     {
