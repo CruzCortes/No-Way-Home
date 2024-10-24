@@ -586,6 +586,30 @@ PrefabInstance:
       propertyPath: moveSpeed
       value: 3.5
       objectReference: {fileID: 0}
+    - target: {fileID: 2711948416174178911, guid: f82417529dc9d4dc1b7db77c5933b4db, type: 3}
+      propertyPath: footprintPrefab
+      value: 
+      objectReference: {fileID: 5617837019770187468, guid: ae047bfd358934b1bb58d768856ba86e, type: 3}
+    - target: {fileID: 2711948416174178911, guid: f82417529dc9d4dc1b7db77c5933b4db, type: 3}
+      propertyPath: rotationVariation
+      value: 100
+      objectReference: {fileID: 0}
+    - target: {fileID: 2711948416174178911, guid: f82417529dc9d4dc1b7db77c5933b4db, type: 3}
+      propertyPath: verticalFootSpacing
+      value: 0.1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2711948416174178911, guid: f82417529dc9d4dc1b7db77c5933b4db, type: 3}
+      propertyPath: horizontalFootSpacing
+      value: 0.07
+      objectReference: {fileID: 0}
+    - target: {fileID: 2711948416174178911, guid: f82417529dc9d4dc1b7db77c5933b4db, type: 3}
+      propertyPath: footprintSpawnInterval
+      value: 0.07
+      objectReference: {fileID: 0}
+    - target: {fileID: 2711948416174178911, guid: f82417529dc9d4dc1b7db77c5933b4db, type: 3}
+      propertyPath: footprintVerticalOffset
+      value: -0.3
+      objectReference: {fileID: 0}
     - target: {fileID: 7211495233371894216, guid: f82417529dc9d4dc1b7db77c5933b4db, type: 3}
       propertyPath: m_Name
       value: Player
