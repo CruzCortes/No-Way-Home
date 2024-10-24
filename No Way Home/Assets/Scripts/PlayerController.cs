@@ -23,6 +23,15 @@ public class PlayerController : MonoBehaviour
     private bool isLeftFoot = true;
     private Vector2 lastMovementDirection = Vector2.right;
 
+    // Rocks:
+    public int[] collectedRocks = new int[2]; // Index 0 for rock1, index 1 for rock2
+    public void CollectRock(int rockType)
+    {
+        collectedRocks[rockType]++;
+        Debug.Log($"Collected rock type {rockType}. Total: {collectedRocks[rockType]}");
+    }
+    // end rocks code
+
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();

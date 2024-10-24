@@ -16,6 +16,14 @@ public class WorldGenerator : MonoBehaviour
     // Number of chunks beyond the camera view to load
     private int chunkLoadRadius = 2;
 
+    // rocks:
+    public GameObject rockPrefab1;
+    public GameObject rockPrefab2;
+    [Range(0f, 1f)]
+    public float rockSpawnChance = 0.10f; // 1% chance per tile to spawn a rock
+
+
+
     void Start()
     {
         if (mainCamera == null)
@@ -133,10 +141,14 @@ public class WorldGenerator : MonoBehaviour
 
     void GenerateChunk(Vector2Int chunkPosition)
     {
-        // Create chunk parent object
+        // Create chunk parent object (keep your existing code)
         GameObject chunkObject = new GameObject($"Chunk_{chunkPosition.x}_{chunkPosition.y}");
         chunkObject.transform.parent = worldContainer;
         chunkObject.transform.position = new Vector3(chunkPosition.x * chunkSize * tileSize, chunkPosition.y * chunkSize * tileSize, 0);
+
+        // Create a separate container for rocks in this chunk
+        GameObject rocksContainer = new GameObject("RocksContainer");
+        rocksContainer.transform.parent = chunkObject.transform;
 
         // Generate tiles within the chunk
         for (int y = 0; y < chunkSize; y++)
@@ -148,11 +160,32 @@ public class WorldGenerator : MonoBehaviour
                     chunkPosition.y * chunkSize + y
                 );
 
+                // Generate ground tile (your existing code)
                 Vector3 worldPosition = new Vector3(tilePosition.x * tileSize, tilePosition.y * tileSize, 0);
                 GameObject tile = Instantiate(groundPrefab, worldPosition, Quaternion.identity, chunkObject.transform);
                 tile.name = $"GroundTile_{tilePosition.x}_{tilePosition.y}";
 
                 long seed = tilePosition.x + tilePosition.y * 10000L;
+                Random.InitState((int)seed); // Use the seed for deterministic rock generation
+
+                // Attempt to spawn a rock
+                if (Random.value < rockSpawnChance)
+                {
+                    GameObject rockPrefab = Random.value < 0.5f ? rockPrefab1 : rockPrefab2;
+                    GameObject rock = Instantiate(rockPrefab, worldPosition, Quaternion.Euler(0, 0, Random.Range(0, 360)), rocksContainer.transform);
+
+                    // Add Rock component and set type
+                    Rock rockComponent = rock.AddComponent<Rock>();
+                    rockComponent.rockType = rockPrefab == rockPrefab1 ? 0 : 1;
+
+                    // Add collider for pickup detection if not already present
+                    if (rock.GetComponent<Collider2D>() == null)
+                    {
+                        rock.AddComponent<CircleCollider2D>().isTrigger = true;
+                    }
+                }
+
+                // Set material seed (your existing code)
                 Renderer renderer = tile.GetComponent<Renderer>();
                 if (renderer != null && renderer.material != null)
                 {
