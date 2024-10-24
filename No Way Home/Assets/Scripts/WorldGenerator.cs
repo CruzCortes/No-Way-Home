@@ -23,6 +23,12 @@ public class WorldGenerator : MonoBehaviour
     public float rockSpawnChance = 0.10f; // 1% chance per tile to spawn a rock
 
 
+    // Trees:
+    public GameObject treeStumpPrefab;
+    public GameObject treeTopPrefab;
+    [Range(0f, 1f)]
+    public float treeSpawnChance = 0.05f; // 5% chance per tile to spawn a tree
+
 
     void Start()
     {
@@ -141,14 +147,17 @@ public class WorldGenerator : MonoBehaviour
 
     void GenerateChunk(Vector2Int chunkPosition)
     {
-        // Create chunk parent object (keep your existing code)
+        // Create chunk parent object
         GameObject chunkObject = new GameObject($"Chunk_{chunkPosition.x}_{chunkPosition.y}");
         chunkObject.transform.parent = worldContainer;
         chunkObject.transform.position = new Vector3(chunkPosition.x * chunkSize * tileSize, chunkPosition.y * chunkSize * tileSize, 0);
 
-        // Create a separate container for rocks in this chunk
+        // Create separate containers for rocks and trees in this chunk
         GameObject rocksContainer = new GameObject("RocksContainer");
         rocksContainer.transform.parent = chunkObject.transform;
+
+        GameObject treesContainer = new GameObject("TreesContainer");
+        treesContainer.transform.parent = chunkObject.transform;
 
         // Generate tiles within the chunk
         for (int y = 0; y < chunkSize; y++)
@@ -160,16 +169,24 @@ public class WorldGenerator : MonoBehaviour
                     chunkPosition.y * chunkSize + y
                 );
 
-                // Generate ground tile (your existing code)
                 Vector3 worldPosition = new Vector3(tilePosition.x * tileSize, tilePosition.y * tileSize, 0);
                 GameObject tile = Instantiate(groundPrefab, worldPosition, Quaternion.identity, chunkObject.transform);
                 tile.name = $"GroundTile_{tilePosition.x}_{tilePosition.y}";
 
+                // Use the same seed for consistent generation
                 long seed = tilePosition.x + tilePosition.y * 10000L;
-                Random.InitState((int)seed); // Use the seed for deterministic rock generation
+                Random.InitState((int)seed);
 
-                // Attempt to spawn a rock
-                if (Random.value < rockSpawnChance)
+                // First check for tree spawn to avoid overlap
+                if (Random.value < treeSpawnChance)
+                {
+                    GameObject treeTemplate = CreateTreePrefab();
+                    GameObject tree = Instantiate(treeTemplate, worldPosition, Quaternion.identity, treesContainer.transform);
+                    tree.name = $"Tree_{tilePosition.x}_{tilePosition.y}";
+                    Destroy(treeTemplate);
+                }
+                // If no tree was spawned, try to spawn a rock
+                else if (Random.value < rockSpawnChance)
                 {
                     GameObject rockPrefab = Random.value < 0.5f ? rockPrefab1 : rockPrefab2;
                     GameObject rock = Instantiate(rockPrefab, worldPosition, Quaternion.Euler(0, 0, Random.Range(0, 360)), rocksContainer.transform);
@@ -185,7 +202,7 @@ public class WorldGenerator : MonoBehaviour
                     }
                 }
 
-                // Set material seed (your existing code)
+                // Set material seed for the ground tile
                 Renderer renderer = tile.GetComponent<Renderer>();
                 if (renderer != null && renderer.material != null)
                 {
@@ -195,4 +212,37 @@ public class WorldGenerator : MonoBehaviour
         }
         generatedChunks.Add(chunkPosition, chunkObject);
     }
+
+    // make tree:
+    private GameObject CreateTreePrefab()
+    {
+        // Create parent object for the tree
+        GameObject treeObject = new GameObject("Tree");
+        Tree treeComponent = treeObject.AddComponent<Tree>();
+
+        // Create and setup stump
+        GameObject stump = Instantiate(treeStumpPrefab, Vector3.zero, Quaternion.identity);
+        stump.transform.SetParent(treeObject.transform, false);
+        stump.transform.localPosition = Vector3.zero;
+        SpriteRenderer stumpRenderer = stump.GetComponent<SpriteRenderer>();
+        stumpRenderer.sortingOrder = 0;
+
+        // Create and setup top
+        GameObject top = Instantiate(treeTopPrefab, Vector3.zero, Quaternion.identity);
+        top.transform.SetParent(treeObject.transform, false);
+        top.transform.localPosition = Vector3.zero;
+        SpriteRenderer topRenderer = top.GetComponent<SpriteRenderer>();
+        topRenderer.sortingOrder = 2;
+
+        // Set up references in the Tree component
+        treeComponent.stump = stumpRenderer;
+        treeComponent.top = topRenderer;
+
+        // Initialize the tree
+        treeComponent.Initialize();
+
+        return treeObject;
+    }
+
+
 }
