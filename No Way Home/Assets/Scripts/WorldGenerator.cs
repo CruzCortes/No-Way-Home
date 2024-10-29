@@ -28,7 +28,20 @@ public class WorldGenerator : MonoBehaviour
     public GameObject treeTopPrefab;
     [Range(0f, 1f)]
     public float treeSpawnChance = 0.05f; // 5% chance per tile to spawn a tree
+    public GameObject woodPrefab;
+    public static WorldGenerator Instance { get; private set; }
 
+    void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
 
     void Start()
     {

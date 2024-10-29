@@ -6,14 +6,18 @@ public class PlayerController : MonoBehaviour
     private Rigidbody2D rb;
     private Vector2 movement;
 
+    [Header("Animation References")]
+    public RuntimeAnimatorController animatorController;
+    private Animator animator;
+
     [Header("Footprint Settings")]
     public GameObject footprintPrefab;
     public float footprintSpawnInterval = 0.3f;
 
     [Header("Footprint Positioning")]
-    [SerializeField] private float horizontalFootSpacing = 0.15f;  // Closer spacing for left/right movement
-    [SerializeField] private float verticalFootSpacing = 0.3f;    // Wider spacing for up/down movement
-    [SerializeField] private float footprintVerticalOffset = -0.9f;  // Vertical offset to place at feet
+    [SerializeField] private float horizontalFootSpacing = 0.15f;
+    [SerializeField] private float verticalFootSpacing = 0.3f;
+    [SerializeField] private float footprintVerticalOffset = -0.9f;
 
     [Header("Footprint Variation")]
     [SerializeField] private float scaleVariation = 0.2f;
@@ -23,30 +27,65 @@ public class PlayerController : MonoBehaviour
     private bool isLeftFoot = true;
     private Vector2 lastMovementDirection = Vector2.right;
 
+    // Parameters for animator
+    private static readonly string HORIZONTAL = "Horizontal";
+    private static readonly string VERTICAL = "Vertical";
+    private static readonly string IS_MOVING = "IsMoving";
+
     // Rocks:
-    public int[] collectedRocks = new int[2]; // Index 0 for rock1, index 1 for rock2
+    public int[] collectedRocks = new int[2];
+
+    public int woodCount = 0;
+
+    public void CollectWood()
+    {
+        woodCount++;
+        Debug.Log($"Collected wood. Total: {woodCount}");
+    }
+
     public void CollectRock(int rockType)
     {
         collectedRocks[rockType]++;
         Debug.Log($"Collected rock type {rockType}. Total: {collectedRocks[rockType]}");
     }
-    // end rocks code
 
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
+        animator = GetComponent<Animator>();
+
+        if (animator == null)
+        {
+            animator = gameObject.AddComponent<Animator>();
+        }
+
+        // Set the animator controller if provided
+        if (animatorController != null && animator != null)
+        {
+            animator.runtimeAnimatorController = animatorController;
+        }
     }
 
     void Update()
     {
+        // Get input
         movement.x = Input.GetAxisRaw("Horizontal");
         movement.y = Input.GetAxisRaw("Vertical");
+
+        // Handle animations
+        if (animator != null)
+        {
+            animator.SetFloat(HORIZONTAL, movement.x);
+            animator.SetFloat(VERTICAL, movement.y);
+            animator.SetBool(IS_MOVING, movement.magnitude > 0.1f);
+        }
 
         if (movement != Vector2.zero)
         {
             lastMovementDirection = movement.normalized;
         }
 
+        // Footprint logic
         if (movement.magnitude > 0.1f)
         {
             footprintTimer += Time.deltaTime;
