@@ -174,9 +174,9 @@ MonoBehaviour:
   rockPrefab1: {fileID: 7516243249096800838, guid: 1bdd2bec00f3b4e89ab24904c7c45a22, type: 3}
   rockPrefab2: {fileID: 8948387960852612926, guid: d16c142735b8c4ea9a2290f419c1c730, type: 3}
   rockSpawnChance: 0.05
-  treeStumpPrefab: {fileID: 8748000345005332679, guid: 5d3ac8f885bb1465b8ce5e2851373522, type: 3}
-  treeTopPrefab: {fileID: 1020118917168220963, guid: 5d335cc6ae0644095aee619e1810c541, type: 3}
-  treeSpawnChance: 0.05
+  treeStumpPrefab: {fileID: 3609978208163730650, guid: 5d3ac8f885bb1465b8ce5e2851373522, type: 3}
+  treeTopPrefab: {fileID: 251260468785459163, guid: 5d335cc6ae0644095aee619e1810c541, type: 3}
+  treeSpawnChance: 0.051
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0
@@ -298,7 +298,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3f9de9e9edc374279bd048c852560e47, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  dayDuration: 24
+  dayDuration: 240
   timeOfDay: 0.5
   isPaused: 0
   nightColor: {r: 0, g: 0, b: 0, a: 0.9647059}
@@ -799,6 +799,10 @@ PrefabInstance:
       propertyPath: m_TagString
       value: Player
       objectReference: {fileID: 0}
+    - target: {fileID: 7840236853283492414, guid: f82417529dc9d4dc1b7db77c5933b4db, type: 3}
+      propertyPath: m_Constraints
+      value: 4
+      objectReference: {fileID: 0}
     - target: {fileID: 8968547160859070105, guid: f82417529dc9d4dc1b7db77c5933b4db, type: 3}
       propertyPath: m_LocalScale.x
       value: 2
@@ -886,8 +890,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 620, y: 448}
-  m_SizeDelta: {x: 569.7296, y: 137.4994}
+  m_AnchoredPosition: {x: -807.3435, y: -424.79343}
+  m_SizeDelta: {x: 271.1661, y: 156.2737}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1674824560
 MonoBehaviour:
