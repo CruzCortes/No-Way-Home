@@ -299,11 +299,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3f9de9e9edc374279bd048c852560e47, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  dayDuration: 240
+  dayDuration: 24
   timeOfDay: 0.5
   isPaused: 0
-  nightColor: {r: 0, g: 0, b: 0, a: 0.9843137}
-  nightIntensity: 1
+  timePhases: []
+  transitionDuration: 1
 --- !u!1 &607558162
 GameObject:
   m_ObjectHideFlags: 0
@@ -974,6 +974,7 @@ GameObject:
   - component: {fileID: 1868817088}
   - component: {fileID: 1868817087}
   - component: {fileID: 1868817090}
+  - component: {fileID: 1868817091}
   m_Layer: 0
   m_Name: eye_enemy
   m_TagString: Untagged
@@ -1063,7 +1064,7 @@ Transform:
   m_GameObject: {fileID: 1868817086}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -4.43, y: -1.8, z: 0}
+  m_LocalPosition: {x: -6.6, y: -3.09, z: 0}
   m_LocalScale: {x: 2, y: 2, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1104,6 +1105,36 @@ CircleCollider2D:
   m_Offset: {x: 0, y: 0}
   serializedVersion: 2
   m_Radius: 0.27
+--- !u!114 &1868817091
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1868817086}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ae4f3650b3b9b46818a9b53102083383, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  detectionRange: 10
+  attackRange: 3
+  maxDistanceFromStart: 15
+  flyingSpeed: 3
+  soarAmplitude: 1
+  soarFrequency: 1.5
+  wanderRadius: 4
+  maxRotationSpeed: 180
+  chargeSpeed: 8
+  chargeCooldown: 2
+  chargeDistance: 5
+  damage: 1
+  knockbackForce: 5
+  attackProbability: 0.05
+  oscillationSpeed: 2
+  oscillationAmplitude: 0.5
+  spiralRadius: 1
+  spiralSpeed: 3
 --- !u!1 &1922136994
 GameObject:
   m_ObjectHideFlags: 0
