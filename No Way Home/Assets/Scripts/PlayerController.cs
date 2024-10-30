@@ -10,6 +10,13 @@ public class PlayerController : MonoBehaviour
     public RuntimeAnimatorController animatorController;
     private Animator animator;
 
+    // Animation Trigger Parameters
+    private static readonly string TRIGGER_IDLE = "Idle";
+    private static readonly string TRIGGER_WALK_UP = "WalkUp";
+    private static readonly string TRIGGER_WALK_DOWN = "WalkDown";
+    private static readonly string TRIGGER_WALK_LEFT = "WalkLeft";
+    private static readonly string TRIGGER_WALK_RIGHT = "WalkRight";
+
     [Header("Footprint Settings")]
     public GameObject footprintPrefab;
     public float footprintSpawnInterval = 0.3f;
@@ -27,14 +34,8 @@ public class PlayerController : MonoBehaviour
     private bool isLeftFoot = true;
     private Vector2 lastMovementDirection = Vector2.right;
 
-    // Parameters for animator
-    private static readonly string HORIZONTAL = "Horizontal";
-    private static readonly string VERTICAL = "Vertical";
-    private static readonly string IS_MOVING = "IsMoving";
-
-    // Rocks:
+    // Rocks and Wood collection
     public int[] collectedRocks = new int[2];
-
     public int woodCount = 0;
 
     public void CollectWood()
@@ -59,7 +60,6 @@ public class PlayerController : MonoBehaviour
             animator = gameObject.AddComponent<Animator>();
         }
 
-        // Set the animator controller if provided
         if (animatorController != null && animator != null)
         {
             animator.runtimeAnimatorController = animatorController;
@@ -75,9 +75,30 @@ public class PlayerController : MonoBehaviour
         // Handle animations
         if (animator != null)
         {
-            animator.SetFloat(HORIZONTAL, movement.x);
-            animator.SetFloat(VERTICAL, movement.y);
-            animator.SetBool(IS_MOVING, movement.magnitude > 0.1f);
+            if (movement.magnitude > 0.1f)
+            {
+                // Determine which animation to play based on dominant direction
+                if (Mathf.Abs(movement.x) > Mathf.Abs(movement.y))
+                {
+                    // Horizontal movement is dominant
+                    if (movement.x > 0)
+                        animator.SetTrigger(TRIGGER_WALK_RIGHT);
+                    else
+                        animator.SetTrigger(TRIGGER_WALK_LEFT);
+                }
+                else
+                {
+                    // Vertical movement is dominant
+                    if (movement.y > 0)
+                        animator.SetTrigger(TRIGGER_WALK_UP);
+                    else
+                        animator.SetTrigger(TRIGGER_WALK_DOWN);
+                }
+            }
+            else
+            {
+                animator.SetTrigger(TRIGGER_IDLE);
+            }
         }
 
         if (movement != Vector2.zero)

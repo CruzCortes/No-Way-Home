@@ -6,14 +6,19 @@ public class Tree : MonoBehaviour
 {
     public SpriteRenderer stump;
     public SpriteRenderer top;
-    public BoxCollider2D treeCollider;  // Main collider for physics
-    private BoxCollider2D interactionCollider; // Trigger collider for stump interaction
+    public BoxCollider2D treeCollider;
+    private BoxCollider2D interactionCollider;
 
     [Header("Tree Cutting Settings")]
     public int maxHealth = 3;
     public float fallDuration = 1.5f;
     public float woodScatterRadius = 2f;
     public int woodDropCount = 3;
+
+    [Header("Animation Settings")]
+    public float wiggleDuration = 0.5f;
+    public float wiggleStrength = 5f;
+    public float wiggleSpeed = 15f;
 
     private int currentHealth;
     private bool isBeingCut = false;
@@ -30,7 +35,7 @@ public class Tree : MonoBehaviour
         {
             treeCollider = gameObject.AddComponent<BoxCollider2D>();
         }
-        treeCollider.isTrigger = false; // This is the main physics collider
+        treeCollider.isTrigger = false;
 
         // Set up the stump interaction trigger collider
         interactionCollider = gameObject.AddComponent<BoxCollider2D>();
@@ -48,7 +53,7 @@ public class Tree : MonoBehaviour
 
             // Interaction collider setup (wider area around the stump)
             interactionCollider.size = new Vector2(stumpSize.x * 1.5f, stumpSize.y * 0.5f);
-            float interactionOffsetY = mainOffsetY - 0.5f; // Position it at the base of the tree
+            float interactionOffsetY = mainOffsetY - 0.5f;
             interactionCollider.offset = new Vector2(0, interactionOffsetY);
         }
 
@@ -101,11 +106,7 @@ public class Tree : MonoBehaviour
         if (currentHealth <= 0)
         {
             Debug.Log("Tree is falling!");
-            StartCoroutine(FallTree());
-        }
-        else
-        {
-            isBeingCut = false;
+            StartCoroutine(WiggleAndFall());
         }
     }
 
@@ -127,39 +128,92 @@ public class Tree : MonoBehaviour
         }
 
         top.transform.localPosition = originalPosition;
+        isBeingCut = false;
     }
 
-    IEnumerator FallTree()
+    IEnumerator WiggleAndFall()
     {
         if (top == null) yield break;
 
         isFalling = true;
         float elapsed = 0f;
-        Quaternion startRotation = top.transform.localRotation;
-        Quaternion targetRotation = Quaternion.Euler(0, 0, -90f);
 
-        // Determine fall direction (random left/right)
-        float randomDirection = Random.Range(0, 2) == 0 ? -90f : 90f;
-        targetRotation = Quaternion.Euler(0, 0, randomDirection);
+        // Calculate base point (bottom center of tree top)
+        Vector3 topStartPosition = top.transform.position;
+        float treeHeight = top.bounds.size.y;
+        Vector3 basePoint = topStartPosition - new Vector3(0, treeHeight / 2, 0);
+        float heightOffset = treeHeight / 2;
 
-        while (elapsed < fallDuration)
+        // Wiggle phase
+        while (elapsed < wiggleDuration)
         {
-            // Use smoothstep for acceleration
-            float t = elapsed / fallDuration;
-            t = t * t * (3f - 2f * t); // Smoothstep formula
+            float wiggleAngle = Mathf.Sin(elapsed * wiggleSpeed) * wiggleStrength * (1 - elapsed / wiggleDuration);
 
-            top.transform.localRotation = Quaternion.Lerp(startRotation, targetRotation, t);
+            // Calculate position offset for wiggle
+            float angleRad = wiggleAngle * Mathf.Deg2Rad;
+            Vector3 wiggleOffset = new Vector3(
+                heightOffset * Mathf.Sin(angleRad),
+                heightOffset * (1 - Mathf.Cos(angleRad)),
+                0
+            );
+
+            top.transform.rotation = Quaternion.Euler(0, 0, wiggleAngle);
+            top.transform.position = basePoint + new Vector3(0, heightOffset, 0) - wiggleOffset;
+
             elapsed += Time.deltaTime;
             yield return null;
         }
 
-        // Ensure final rotation is exact
-        top.transform.localRotation = targetRotation;
+        // Fall phase
+        elapsed = 0f;
+        float startRotation = 0;
+        float randomDirection = Random.Range(0, 2) == 0 ? -90f : 90f;
+        float targetRotation = randomDirection;
 
-        // Scatter wood
+        Vector3 lastPosition = top.transform.position;
+        Quaternion lastRotation = top.transform.rotation;
+
+        while (elapsed < fallDuration)
+        {
+            float t = elapsed / fallDuration;
+            t = t * t * (3f - 2f * t); // Smoothstep formula
+
+            float currentAngle = Mathf.Lerp(startRotation, targetRotation, t);
+            float angleRad = currentAngle * Mathf.Deg2Rad;
+
+            Vector3 rotationOffset = new Vector3(
+                heightOffset * Mathf.Sin(angleRad),
+                heightOffset * (1 - Mathf.Cos(angleRad)),
+                0
+            );
+
+            if (randomDirection < 0)
+            {
+                rotationOffset.x *= -1;
+            }
+
+            top.transform.rotation = Quaternion.Euler(0, 0, currentAngle);
+            top.transform.position = basePoint + new Vector3(0, heightOffset, 0) - rotationOffset;
+
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        // Ensure final position and rotation
+        float finalAngleRad = targetRotation * Mathf.Deg2Rad;
+        Vector3 finalOffset = new Vector3(
+            heightOffset * Mathf.Sin(finalAngleRad),
+            heightOffset * (1 - Mathf.Cos(finalAngleRad)),
+            0
+        );
+        if (randomDirection < 0) finalOffset.x *= -1;
+
+        top.transform.rotation = Quaternion.Euler(0, 0, targetRotation);
+        top.transform.position = basePoint + new Vector3(0, heightOffset, 0) - finalOffset;
+
+        yield return new WaitForSeconds(0.2f);
+
         ScatterWood();
-
-        // Remove tree top
         Destroy(top.gameObject);
     }
 
@@ -173,13 +227,15 @@ public class Tree : MonoBehaviour
                 float radius = Random.Range(0f, woodScatterRadius);
                 Vector2 position = (Vector2)transform.position + (Random.insideUnitCircle * radius);
 
-                GameObject wood = Instantiate(WorldGenerator.Instance.woodPrefab, position, Quaternion.Euler(0, 0, Random.Range(0f, 360f)));
+                GameObject wood = Instantiate(WorldGenerator.Instance.woodPrefab, position,
+                    Quaternion.Euler(0, 0, Random.Range(0f, 360f)));
 
-                // Add necessary components for wood pickup
                 Wood woodComponent = wood.AddComponent<Wood>();
                 if (wood.GetComponent<Collider2D>() == null)
                 {
-                    wood.AddComponent<CircleCollider2D>().isTrigger = true;
+                    CircleCollider2D collider = wood.AddComponent<CircleCollider2D>();
+                    collider.isTrigger = true;
+                    collider.radius = 0.5f;
                 }
             }
         }
