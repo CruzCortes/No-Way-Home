@@ -139,28 +139,40 @@ public class HotBarManager : MonoBehaviour
     {
         if (playerController == null) return;
 
+        int currentSlot = 0;
+
         // Update display for rocks
         for (int i = 0; i < playerController.collectedRocks.Length; i++)
         {
-            if (i < numberOfSlots)
+            if (currentSlot < numberOfSlots)
             {
-                itemNameTexts[i].text = $"Rock {i + 1}";
-                quantityTexts[i].text = playerController.collectedRocks[i].ToString();
-                UpdateSlotVisuals(i);
+                itemNameTexts[currentSlot].text = $"Rock {i + 1}";
+                quantityTexts[currentSlot].text = playerController.collectedRocks[i].ToString();
+                UpdateSlotVisuals(currentSlot);
+                currentSlot++;
             }
         }
 
         // Update display for wood
-        int woodSlot = playerController.collectedRocks.Length;
-        if (woodSlot < numberOfSlots)
+        if (currentSlot < numberOfSlots)
         {
-            itemNameTexts[woodSlot].text = "Wood";
-            quantityTexts[woodSlot].text = playerController.woodCount.ToString();
-            UpdateSlotVisuals(woodSlot);
+            itemNameTexts[currentSlot].text = "Wood";
+            quantityTexts[currentSlot].text = playerController.woodCount.ToString();
+            UpdateSlotVisuals(currentSlot);
+            currentSlot++;
+        }
+
+        // Update display for campfire
+        if (currentSlot < numberOfSlots && playerController.campfireCount > 0)
+        {
+            itemNameTexts[currentSlot].text = "Campfire";
+            quantityTexts[currentSlot].text = playerController.campfireCount.ToString();
+            UpdateSlotVisuals(currentSlot);
+            currentSlot++;
         }
 
         // Clear remaining slots
-        for (int i = playerController.collectedRocks.Length + 1; i < numberOfSlots; i++)
+        for (int i = currentSlot; i < numberOfSlots; i++)
         {
             itemNameTexts[i].text = "";
             quantityTexts[i].text = "";

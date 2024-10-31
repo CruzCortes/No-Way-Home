@@ -36,8 +36,11 @@ public class PlayerController : MonoBehaviour
 
     // Rocks and Wood collection
     // rocks have types. current: 2
-    public int[] collectedRocks = new int[2];
+    // Inventory
+    [Header("Inventory")]
+    public int[] collectedRocks = new int[2];  // Different rock types
     public int woodCount = 0;
+    public int campfireCount = 0;  // Added campfire tracking
 
     public void CollectWood()
     {
@@ -47,8 +50,47 @@ public class PlayerController : MonoBehaviour
 
     public void CollectRock(int rockType)
     {
-        collectedRocks[rockType]++;
-        Debug.Log($"Collected rock type {rockType}. Total: {collectedRocks[rockType]}");
+        if (rockType < collectedRocks.Length)
+        {
+            collectedRocks[rockType]++;
+            Debug.Log($"Collected rock type {rockType}. Total: {collectedRocks[rockType]}");
+        }
+    }
+
+    // Crafting-related methods
+    public void RemoveWood(int amount)
+    {
+        woodCount = Mathf.Max(0, woodCount - amount);
+        Debug.Log($"Used {amount} wood. Remaining: {woodCount}");
+    }
+
+    public void AddCampfire()
+    {
+        campfireCount++;
+        Debug.Log($"Added campfire to inventory. Total: {campfireCount}");
+    }
+
+    public bool HasEnoughWood(int amount)
+    {
+        return woodCount >= amount;
+    }
+
+    // Additional utility methods for inventory management
+    public int GetItemCount(string itemName)
+    {
+        switch (itemName.ToLower())
+        {
+            case "wood":
+                return woodCount;
+            case "campfire":
+                return campfireCount;
+            case "rock 1":
+                return collectedRocks[0];
+            case "rock 2":
+                return collectedRocks[1];
+            default:
+                return 0;
+        }
     }
 
     void Start()

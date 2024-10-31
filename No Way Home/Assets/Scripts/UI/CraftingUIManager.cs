@@ -7,12 +7,18 @@ public class CraftingUIManager : MonoBehaviour
 {
     [Header("Panel References")]
     [SerializeField] private RectTransform craftingPanel;
+    [SerializeField] private PlayerController playerController;
 
     [Header("Colors")]
     [SerializeField] private Color structuresColor = new Color(0.2f, 0.6f, 0.8f, 0.9f);
     [SerializeField] private Color utilitiesColor = new Color(0.8f, 0.4f, 0.2f, 0.9f);
     [SerializeField] private Color foodColor = new Color(0.4f, 0.8f, 0.2f, 0.9f);
     [SerializeField] private Color systemsColor = new Color(0.6f, 0.2f, 0.8f, 0.9f);
+
+    [Header("UI Settings")]
+    [SerializeField] private float buttonCornerRadius = 10f;
+    [SerializeField] private Color buttonNormalColor = new Color(0.3f, 0.3f, 0.3f, 0.9f);
+    [SerializeField] private Color buttonDisabledColor = new Color(0.3f, 0.3f, 0.3f, 0.5f);
 
     [Header("Input Settings")]
     [SerializeField] private KeyCode toggleKey = KeyCode.Q;
@@ -27,15 +33,30 @@ public class CraftingUIManager : MonoBehaviour
     private CanvasGroup canvasGroup;
     private bool isVisible = false;
 
+    // Crafting system variables
+    private Button craftButton;
+    private TextMeshProUGUI requirementsText;
+    private TextMeshProUGUI selectedItemText;
+    private const int CAMPFIRE_WOOD_COST = 3;
+    private string selectedCraftableItem = null;
+    private string currentCategory = "Structures";
+
     private void Awake()
     {
-        // Add CanvasGroup for easy visibility control
         canvasGroup = craftingPanel.gameObject.AddComponent<CanvasGroup>();
-        HidePanel(); // Hide by default
+        HidePanel();
     }
 
     private void Start()
     {
+        if (playerController == null)
+        {
+            playerController = FindObjectOfType<PlayerController>();
+            if (playerController == null)
+            {
+                Debug.LogError("PlayerController not found!");
+            }
+        }
         SetupCraftingUI();
     }
 
@@ -45,18 +66,17 @@ public class CraftingUIManager : MonoBehaviour
         {
             TogglePanel();
         }
+
+        if (isVisible && selectedCraftableItem != null)
+        {
+            UpdateCraftingRequirements();
+        }
     }
 
     private void TogglePanel()
     {
-        if (isVisible)
-        {
-            HidePanel();
-        }
-        else
-        {
-            ShowPanel();
-        }
+        if (isVisible) HidePanel();
+        else ShowPanel();
     }
 
     private void ShowPanel()
@@ -88,33 +108,23 @@ public class CraftingUIManager : MonoBehaviour
         navBar.anchorMax = new Vector2(1, 0.1f);
         navBar.sizeDelta = Vector2.zero;
 
-        // Setup navigation bar background with rounded corners
+        // Setup navigation bar background
         var navBarBackground = navBar.gameObject.AddComponent<Image>();
         navBarBackground.color = new Color(0.2f, 0.2f, 0.2f, 0.95f);
 
-        // Add rounded corners to navigation bar
-        var navBarMask = navBar.gameObject.AddComponent<Mask>();
-        navBarMask.showMaskGraphic = true;
-
-        // Create selection and requirements panels
         SetupContentPanels();
-
-        // Create navigation buttons
         SetupNavigationButtons();
-
-        // Set initial category
+        SetupCraftingItems();
         SetCategory("Structures");
     }
 
     private void SetupContentPanels()
     {
-        // Left panel (Selection)
+        // Selection Panel (Left side)
         selectionPanel = CreateUIElement("SelectionPanel", contentContainer);
         selectionPanel.anchorMin = new Vector2(0, 0);
         selectionPanel.anchorMax = new Vector2(0.7f, 1);
         selectionPanel.sizeDelta = Vector2.zero;
-        selectionPanel.anchoredPosition = Vector2.zero;
-
         selectionPanelBackground = selectionPanel.gameObject.AddComponent<Image>();
         selectionPanelBackground.color = structuresColor;
 
@@ -124,24 +134,41 @@ public class CraftingUIManager : MonoBehaviour
         rightContainer.anchorMax = Vector2.one;
         rightContainer.sizeDelta = Vector2.zero;
 
-        // Requirements panel (bottom part of right container)
+        // Requirements Panel (Right side)
         requirementsPanel = CreateUIElement("RequirementsPanel", rightContainer);
-        requirementsPanel.anchorMin = new Vector2(0, 0);
+        requirementsPanel.anchorMin = Vector2.zero;
         requirementsPanel.anchorMax = Vector2.one;
         requirementsPanel.sizeDelta = Vector2.zero;
-
         requirementsPanelBackground = requirementsPanel.gameObject.AddComponent<Image>();
         requirementsPanelBackground.color = structuresColor;
 
-        // Craft button container (top of requirements panel)
-        var craftButtonContainer = CreateUIElement("CraftButtonContainer", requirementsPanel);
-        craftButtonContainer.anchorMin = new Vector2(0, 0.9f);
-        craftButtonContainer.anchorMax = Vector2.one;
-        craftButtonContainer.sizeDelta = Vector2.zero;
+        // Selected Item Display
+        var selectedItemObj = CreateUIElement("SelectedItem", requirementsPanel);
+        selectedItemObj.anchorMin = new Vector2(0.1f, 0.8f);
+        selectedItemObj.anchorMax = new Vector2(0.9f, 0.9f);
+        selectedItemText = selectedItemObj.gameObject.AddComponent<TextMeshProUGUI>();
+        selectedItemText.fontSize = 28;
+        selectedItemText.color = Color.white;
+        selectedItemText.alignment = TextAlignmentOptions.Center;
+        selectedItemText.fontStyle = FontStyles.Bold;
 
-        // Create craft button
-        var craftButton = CreateButton(craftButtonContainer, "Craft", new Vector2(0.1f, 0.1f));
-        craftButton.GetComponent<RectTransform>().sizeDelta = new Vector2(-20, -10);
+        // Requirements Text - Centered
+        var requirementsTextObj = CreateUIElement("RequirementsText", requirementsPanel);
+        requirementsTextObj.anchorMin = new Vector2(0.1f, 0.2f);
+        requirementsTextObj.anchorMax = new Vector2(0.9f, 0.8f);
+        requirementsText = requirementsTextObj.gameObject.AddComponent<TextMeshProUGUI>();
+        requirementsText.fontSize = 24;
+        requirementsText.color = Color.white;
+        requirementsText.alignment = TextAlignmentOptions.Center;
+        requirementsText.text = "Select an item to craft";
+
+        // Craft Button
+        var craftButtonContainer = CreateUIElement("CraftButtonContainer", requirementsPanel);
+        craftButtonContainer.anchorMin = new Vector2(0.2f, 0.05f);
+        craftButtonContainer.anchorMax = new Vector2(0.8f, 0.15f);
+        craftButton = CreateButton(craftButtonContainer, "Craft", new Vector2(0.05f, 0.1f));
+        craftButton.onClick.AddListener(OnCraftButtonClicked);
+        craftButton.interactable = false;
     }
 
     private void SetupNavigationButtons()
@@ -164,6 +191,25 @@ public class CraftingUIManager : MonoBehaviour
             string category = categories[i];
             button.onClick.AddListener(() => SetCategory(category));
             navigationButtons[category] = button;
+        }
+    }
+
+    private void SetupCraftingItems()
+    {
+        // Clear existing items
+        foreach (Transform child in selectionPanel)
+        {
+            if (child.name.Contains("Button"))
+            {
+                Destroy(child.gameObject);
+            }
+        }
+
+        // Only show campfire in Structures category
+        if (currentCategory == "Structures")
+        {
+            var campfireButton = CreateCraftingItemButton("Campfire", "A warm fire to keep you cozy\nCost: 3 Wood");
+            campfireButton.onClick.AddListener(() => SelectCraftingItem("Campfire"));
         }
     }
 
@@ -190,7 +236,10 @@ public class CraftingUIManager : MonoBehaviour
 
         var button = buttonObj.AddComponent<Button>();
         var buttonImage = buttonObj.AddComponent<Image>();
-        buttonImage.color = new Color(0.3f, 0.3f, 0.3f, 0.9f);
+        buttonImage.color = buttonNormalColor;
+
+        // Add button press effect
+        var buttonEffect = button.gameObject.AddComponent<ButtonScaleEffect>();
 
         var textObj = new GameObject("Text");
         var textRect = textObj.AddComponent<RectTransform>();
@@ -210,9 +259,54 @@ public class CraftingUIManager : MonoBehaviour
         return button;
     }
 
+    private Button CreateCraftingItemButton(string itemName, string description)
+    {
+        var buttonObj = CreateUIElement($"{itemName}Button", selectionPanel);
+        buttonObj.anchorMin = new Vector2(0.05f, 0.8f);
+        buttonObj.anchorMax = new Vector2(0.95f, 0.95f);
+        buttonObj.sizeDelta = Vector2.zero;
+
+        var button = buttonObj.gameObject.AddComponent<Button>();
+        var buttonImage = buttonObj.gameObject.AddComponent<Image>();
+        buttonImage.color = buttonNormalColor;
+
+        // Add button press effect
+        var buttonEffect = button.gameObject.AddComponent<ButtonScaleEffect>();
+
+        // Text container
+        var textContainer = CreateUIElement("TextContainer", buttonObj.transform);
+        textContainer.anchorMin = Vector2.zero;
+        textContainer.anchorMax = Vector2.one;
+        textContainer.sizeDelta = Vector2.zero;
+
+        // Item name
+        var nameText = CreateUIElement("ItemName", textContainer);
+        nameText.anchorMin = new Vector2(0, 0.6f);
+        nameText.anchorMax = new Vector2(1, 1);
+        var tmpName = nameText.gameObject.AddComponent<TextMeshProUGUI>();
+        tmpName.text = itemName;
+        tmpName.fontSize = 24;
+        tmpName.color = Color.white;
+        tmpName.alignment = TextAlignmentOptions.Center;
+
+        // Description
+        var descText = CreateUIElement("Description", textContainer);
+        descText.anchorMin = new Vector2(0, 0);
+        descText.anchorMax = new Vector2(1, 0.6f);
+        var tmpDesc = descText.gameObject.AddComponent<TextMeshProUGUI>();
+        tmpDesc.text = description;
+        tmpDesc.fontSize = 18;
+        tmpDesc.color = Color.white;
+        tmpDesc.alignment = TextAlignmentOptions.Center;
+
+        return button;
+    }
+
     private void SetCategory(string category)
     {
+        currentCategory = category;
         Color categoryColor = structuresColor;
+
         switch (category)
         {
             case "Structures":
@@ -232,17 +326,103 @@ public class CraftingUIManager : MonoBehaviour
         selectionPanelBackground.color = categoryColor;
         requirementsPanelBackground.color = categoryColor;
 
-        // Update button visual states
-        foreach (var button in navigationButtons.Values)
+        foreach (var pair in navigationButtons)
         {
-            var buttonImage = button.GetComponent<Image>();
-            buttonImage.color = new Color(0.3f, 0.3f, 0.3f, 0.9f);
+            var buttonImage = pair.Value.GetComponent<Image>();
+            buttonImage.color = buttonNormalColor;
         }
 
         if (navigationButtons.TryGetValue(category, out Button selectedButton))
         {
             var buttonImage = selectedButton.GetComponent<Image>();
             buttonImage.color = categoryColor;
+        }
+
+        selectedCraftableItem = null;
+        selectedItemText.text = "";
+        requirementsText.text = "Select an item to craft";
+        craftButton.interactable = false;
+
+        SetupCraftingItems();
+    }
+
+    private void SelectCraftingItem(string itemName)
+    {
+        selectedCraftableItem = itemName;
+        selectedItemText.text = itemName;
+        UpdateCraftingRequirements();
+    }
+
+    private void UpdateCraftingRequirements()
+    {
+        if (selectedCraftableItem == "Campfire")
+        {
+            bool canCraft = playerController.woodCount >= CAMPFIRE_WOOD_COST;
+            requirementsText.text = $"Requirements:\n\nWood: {playerController.woodCount}/{CAMPFIRE_WOOD_COST}\n\n" +
+                                  (canCraft ? "Ready to craft!" : "Not enough resources!");
+            craftButton.interactable = canCraft;
+            craftButton.GetComponent<Image>().color = canCraft ? buttonNormalColor : buttonDisabledColor;
+        }
+    }
+
+    private void OnCraftButtonClicked()
+    {
+        if (selectedCraftableItem == "Campfire" && playerController.woodCount >= CAMPFIRE_WOOD_COST)
+        {
+            playerController.RemoveWood(CAMPFIRE_WOOD_COST);
+            playerController.AddCampfire();
+            UpdateCraftingRequirements();
+            Debug.Log("Crafted a campfire!");
+        }
+    }
+}
+public class ButtonScaleEffect : MonoBehaviour
+{
+    private RectTransform rectTransform;
+    private Vector3 originalScale;
+    private const float scaleAmount = 0.95f;
+    private const float scaleSpeed = 10f;
+    private bool isScalingDown = false;
+
+    private void Awake()
+    {
+        rectTransform = GetComponent<RectTransform>();
+        originalScale = rectTransform.localScale;
+
+        var button = GetComponent<Button>();
+        if (button != null)
+        {
+            button.onClick.AddListener(OnClick);
+        }
+    }
+
+    private void OnClick()
+    {
+        isScalingDown = true;
+    }
+
+    private void Update()
+    {
+        if (isScalingDown)
+        {
+            rectTransform.localScale = Vector3.Lerp(
+                rectTransform.localScale,
+                originalScale * scaleAmount,
+                Time.deltaTime * scaleSpeed
+            );
+
+            if (Vector3.Distance(rectTransform.localScale, originalScale * scaleAmount) < 0.01f)
+            {
+                isScalingDown = false;
+            }
+        }
+        else if (rectTransform.localScale != originalScale)
+        {
+            rectTransform.localScale = Vector3.Lerp(
+                rectTransform.localScale,
+                originalScale,
+                Time.deltaTime * scaleSpeed
+            );
         }
     }
 }

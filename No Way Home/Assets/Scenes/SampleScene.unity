@@ -278,7 +278,7 @@ Transform:
   m_GameObject: {fileID: 515166090}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -1.88, y: -2.629, z: 0}
+  m_LocalPosition: {x: -3.6917048, y: 0.40161228, z: 0}
   m_LocalScale: {x: 2, y: 2, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -405,7 +405,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3f9de9e9edc374279bd048c852560e47, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  dayDuration: 600
+  dayDuration: 240
   timeOfDay: 0.5
   isPaused: 0
   timePhases: []
@@ -640,10 +640,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   craftingPanel: {fileID: 1003667199}
+  playerController: {fileID: 0}
   structuresColor: {r: 0.2, g: 0.6, b: 0.8, a: 0.9}
   utilitiesColor: {r: 0.8, g: 0.4, b: 0.2, a: 0.9}
   foodColor: {r: 0.4, g: 0.8, b: 0.2, a: 0.9}
   systemsColor: {r: 0.6, g: 0.2, b: 0.8, a: 0.9}
+  buttonCornerRadius: 10
+  buttonNormalColor: {r: 0.3, g: 0.3, b: 0.3, a: 0.9}
+  buttonDisabledColor: {r: 0.3, g: 0.3, b: 0.3, a: 0.5}
   toggleKey: 113
 --- !u!4 &752107596
 Transform:
@@ -887,6 +891,54 @@ Tilemap:
     e31: 0
     e32: 0
     e33: 1
+--- !u!1 &1142063070
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1142063072}
+  - component: {fileID: 1142063071}
+  m_Layer: 0
+  m_Name: HotBarManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1142063071
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1142063070}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6354057e151134bbdb70cd6843e8b762, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  hotBarPanel: {fileID: 1528617494}
+  numberOfSlots: 8
+  slotSpacing: 10
+  playerController: {fileID: 0}
+--- !u!4 &1142063072
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1142063070}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 1147.9872, y: 431.9636, z: 4.125636}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1309548018
 GameObject:
   m_ObjectHideFlags: 0
@@ -988,7 +1040,7 @@ Transform:
   m_GameObject: {fileID: 1309548018}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -1.9182954, y: -2.7106123, z: 0}
+  m_LocalPosition: {x: -3.73, y: 0.32, z: 0}
   m_LocalScale: {x: 2, y: 2, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1826,3 +1878,4 @@ SceneRoots:
   - {fileID: 752107596}
   - {fileID: 1309548021}
   - {fileID: 515166093}
+  - {fileID: 1142063072}
