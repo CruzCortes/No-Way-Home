@@ -234,11 +234,13 @@ public class Tree : MonoBehaviour
     {
         if (WorldGenerator.Instance != null && WorldGenerator.Instance.woodPrefab != null)
         {
+            Vector2 fallPosition = top.transform.position;
+
             for (int i = 0; i < woodDropCount; i++)
             {
                 float angle = Random.Range(0f, 360f);
                 float radius = Random.Range(0f, woodScatterRadius);
-                Vector2 position = (Vector2)transform.position + (Random.insideUnitCircle * radius);
+                Vector2 position = fallPosition + (Random.insideUnitCircle * radius);
 
                 GameObject wood = Instantiate(WorldGenerator.Instance.woodPrefab, position,
                     Quaternion.Euler(0, 0, Random.Range(0f, 360f)));
@@ -250,7 +252,87 @@ public class Tree : MonoBehaviour
                     collider.isTrigger = true;
                     collider.radius = 0.5f;
                 }
+
+                // Add a component to manage the animation state
+                WoodAnimationHandler animHandler = wood.AddComponent<WoodAnimationHandler>();
+                StartCoroutine(AnimateWoodBounce(wood, animHandler));
             }
+        }
+    }
+
+    // New component to handle animation state
+    public class WoodAnimationHandler : MonoBehaviour
+    {
+        public bool IsAnimating { get; set; } = true;
+
+        void OnDestroy()
+        {
+            IsAnimating = false;
+        }
+    }
+
+    IEnumerator AnimateWoodBounce(GameObject wood, WoodAnimationHandler animHandler)
+    {
+        if (wood == null || animHandler == null) yield break;
+
+        Vector3 startPos = wood.transform.position;
+        float duration = 0.5f;
+        float height = 0.3f;
+        float elapsed = 0f;
+
+        // Initial bounce up
+        while (elapsed < duration * 0.5f && animHandler.IsAnimating && wood != null)
+        {
+            float t = elapsed / (duration * 0.5f);
+            float yOffset = height * Mathf.Sin(t * Mathf.PI);
+
+            // Safe position update
+            if (wood != null)
+            {
+                wood.transform.position = new Vector3(
+                    startPos.x,
+                    startPos.y + yOffset,
+                    startPos.z
+                );
+            }
+            else
+            {
+                yield break;
+            }
+
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        // Bounce down with slight damping
+        float dampedHeight = height * 0.7f;
+        while (elapsed < duration && animHandler.IsAnimating && wood != null)
+        {
+            float t = (elapsed - duration * 0.5f) / (duration * 0.5f);
+            float yOffset = dampedHeight * (1 - t) * Mathf.Cos(t * Mathf.PI);
+
+            // Safe position update
+            if (wood != null)
+            {
+                wood.transform.position = new Vector3(
+                    startPos.x,
+                    startPos.y + yOffset,
+                    startPos.z
+                );
+            }
+            else
+            {
+                yield break;
+            }
+
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        // Final position update only if object still exists
+        if (wood != null && animHandler.IsAnimating)
+        {
+            wood.transform.position = startPos;
         }
     }
 }

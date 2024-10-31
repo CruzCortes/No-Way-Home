@@ -35,6 +35,7 @@ public class PlayerController : MonoBehaviour
     private Vector2 lastMovementDirection = Vector2.right;
 
     // Rocks and Wood collection
+    // rocks have types. current: 2
     public int[] collectedRocks = new int[2];
     public int woodCount = 0;
 
