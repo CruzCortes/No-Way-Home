@@ -299,7 +299,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3f9de9e9edc374279bd048c852560e47, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  dayDuration: 24
+  dayDuration: 600
   timeOfDay: 0.5
   isPaused: 0
   timePhases: []
@@ -911,8 +911,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -807.3435, y: -424.79343}
-  m_SizeDelta: {x: 271.1661, y: 156.2737}
+  m_AnchoredPosition: {x: -820.9501, y: -448.0046}
+  m_SizeDelta: {x: 243.953, y: 109.8513}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1674824560
 MonoBehaviour:

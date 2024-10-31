@@ -148,8 +148,6 @@ public class Tree : MonoBehaviour
         while (elapsed < wiggleDuration)
         {
             float wiggleAngle = Mathf.Sin(elapsed * wiggleSpeed) * wiggleStrength * (1 - elapsed / wiggleDuration);
-
-            // Calculate position offset for wiggle
             float angleRad = wiggleAngle * Mathf.Deg2Rad;
             Vector3 wiggleOffset = new Vector3(
                 heightOffset * Mathf.Sin(angleRad),
@@ -167,11 +165,8 @@ public class Tree : MonoBehaviour
         // Fall phase
         elapsed = 0f;
         float startRotation = 0;
-        float randomDirection = Random.Range(0, 2) == 0 ? -90f : 90f;
-        float targetRotation = randomDirection;
-
-        Vector3 lastPosition = top.transform.position;
-        Quaternion lastRotation = top.transform.rotation;
+        bool fallRight = Random.Range(0, 2) == 1;
+        float targetRotation = fallRight ? 90f : -90f;
 
         while (elapsed < fallDuration)
         {
@@ -181,15 +176,23 @@ public class Tree : MonoBehaviour
             float currentAngle = Mathf.Lerp(startRotation, targetRotation, t);
             float angleRad = currentAngle * Mathf.Deg2Rad;
 
-            Vector3 rotationOffset = new Vector3(
-                heightOffset * Mathf.Sin(angleRad),
-                heightOffset * (1 - Mathf.Cos(angleRad)),
-                0
-            );
-
-            if (randomDirection < 0)
+            // Calculate the rotation offset differently based on fall direction
+            Vector3 rotationOffset;
+            if (fallRight)
             {
-                rotationOffset.x *= -1;
+                rotationOffset = new Vector3(
+                    heightOffset * Mathf.Sin(angleRad),  // Positive for right fall
+                    heightOffset * (1 - Mathf.Cos(angleRad)),
+                    0
+                );
+            }
+            else
+            {
+                rotationOffset = new Vector3(
+                    -heightOffset * Mathf.Sin(-angleRad),  // Negative angle for left fall
+                    heightOffset * (1 - Mathf.Cos(-angleRad)),
+                    0
+                );
             }
 
             top.transform.rotation = Quaternion.Euler(0, 0, currentAngle);
@@ -201,18 +204,28 @@ public class Tree : MonoBehaviour
 
         // Ensure final position and rotation
         float finalAngleRad = targetRotation * Mathf.Deg2Rad;
-        Vector3 finalOffset = new Vector3(
-            heightOffset * Mathf.Sin(finalAngleRad),
-            heightOffset * (1 - Mathf.Cos(finalAngleRad)),
-            0
-        );
-        if (randomDirection < 0) finalOffset.x *= -1;
+        Vector3 finalOffset;
+        if (fallRight)
+        {
+            finalOffset = new Vector3(
+                heightOffset * Mathf.Sin(finalAngleRad),
+                heightOffset * (1 - Mathf.Cos(finalAngleRad)),
+                0
+            );
+        }
+        else
+        {
+            finalOffset = new Vector3(
+                -heightOffset * Mathf.Sin(-finalAngleRad),
+                heightOffset * (1 - Mathf.Cos(-finalAngleRad)),
+                0
+            );
+        }
 
         top.transform.rotation = Quaternion.Euler(0, 0, targetRotation);
         top.transform.position = basePoint + new Vector3(0, heightOffset, 0) - finalOffset;
 
         yield return new WaitForSeconds(0.2f);
-
         ScatterWood();
         Destroy(top.gameObject);
     }
