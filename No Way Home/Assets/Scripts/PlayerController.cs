@@ -51,6 +51,17 @@ public class PlayerController : MonoBehaviour
     private HotBarManager hotBarManager;
     private string currentSelectedItem;
 
+    [Header("Food Inventory")]
+    public int foodCount = 0;  // Add this for food tracking
+
+    #region Food Collection
+    public void CollectFood()
+    {
+        foodCount++;
+        Debug.Log($"Collected food. Total: {foodCount}");
+    }
+    #endregion
+
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
@@ -270,6 +281,8 @@ public class PlayerController : MonoBehaviour
                 return campfireCount;
             case "spear":
                 return spearCount;
+            case "food":
+                return foodCount;
             case "rock 1":
                 return collectedRocks[0];
             case "rock 2":

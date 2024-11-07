@@ -97,7 +97,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 05f967125cf744a76b3f8fdb8052d81f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  moveSpeed: 3
   minHopHeight: 0.2
   maxHopHeight: 0.4
   hopDistance: 0.5
@@ -108,3 +107,5 @@ MonoBehaviour:
   colliderRadius: 0.5
   colliderOffset: {x: 0, y: 0}
   spriteScale: {x: 2, y: 2}
+  foodPrefab: {fileID: 5871606654380339887, guid: 8bc879f219d4d4f6bbc1613f22c8ef13, type: 3}
+  foodSpawnOffset: {x: 0, y: 0.5}

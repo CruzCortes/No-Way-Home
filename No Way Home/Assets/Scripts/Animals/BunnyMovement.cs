@@ -4,16 +4,15 @@ using System.Collections.Generic;
 public class BunnyMovement : MonoBehaviour
 {
     [Header("Movement Parameters")]
-    [SerializeField] private float moveSpeed = 3f;
     [SerializeField] private float minHopHeight = 0.2f;
     [SerializeField] private float maxHopHeight = 0.4f;
-    [SerializeField] private float hopDistance = 0.5f; // Distance per hop
+    [SerializeField] private float hopDistance = 0.5f;
     [SerializeField] private float wanderRadius = 5f;
 
     [Header("AI Parameters")]
     [SerializeField] private float minWaitTime = 2f;
     [SerializeField] private float maxWaitTime = 5f;
-    [SerializeField] private float hopDuration = 0.4f; // Time for each individual hop
+    [SerializeField] private float hopDuration = 0.4f;
 
     [Header("Collider Settings")]
     [SerializeField] private float colliderRadius = 0.1f;
@@ -22,13 +21,15 @@ public class BunnyMovement : MonoBehaviour
     [Header("Sprite Settings")]
     [SerializeField] private Vector2 spriteScale = new Vector2(2f, 2f);
 
+    [Header("Hunting Settings")]
+    [SerializeField] private GameObject foodPrefab;
+    [SerializeField] private Vector2 foodSpawnOffset = new Vector2(0f, 0.5f);
+
     private Vector2 currentTarget;
     private Vector2 startPosition;
     private bool isMoving = false;
     private float waitTimer;
     private CircleCollider2D circleCollider;
-
-    // Hopping variables
     private List<Vector2> hopPoints = new List<Vector2>();
     private int currentHopIndex = 0;
     private float currentHopTime = 0f;
@@ -38,13 +39,27 @@ public class BunnyMovement : MonoBehaviour
 
     private void Awake()
     {
+        // Setup collider
         circleCollider = gameObject.GetComponent<CircleCollider2D>();
         if (circleCollider == null)
         {
             circleCollider = gameObject.AddComponent<CircleCollider2D>();
         }
+
         UpdateColliderSettings();
         transform.localScale = spriteScale;
+
+        // Setup Rigidbody2D
+        Rigidbody2D rb = gameObject.GetComponent<Rigidbody2D>();
+        if (rb == null)
+        {
+            rb = gameObject.AddComponent<Rigidbody2D>();
+        }
+        rb.gravityScale = 0;
+        rb.freezeRotation = true;
+        rb.isKinematic = true;
+
+        Debug.Log("Bunny initialized with Rigidbody2D and CircleCollider2D");
     }
 
     private void UpdateColliderSettings()
@@ -53,6 +68,8 @@ public class BunnyMovement : MonoBehaviour
         {
             circleCollider.radius = colliderRadius;
             circleCollider.offset = colliderOffset;
+            circleCollider.isTrigger = true;
+            Debug.Log($"Bunny collider updated - radius: {colliderRadius}, isTrigger: true");
         }
     }
 
@@ -74,7 +91,6 @@ public class BunnyMovement : MonoBehaviour
             return;
         }
 
-        // Handle hopping movement
         if (currentHopIndex < hopPoints.Count - 1)
         {
             currentHopTime += Time.deltaTime;
@@ -82,7 +98,6 @@ public class BunnyMovement : MonoBehaviour
 
             if (hopProgress >= 1f)
             {
-                // Move to next hop
                 currentHopIndex++;
                 if (currentHopIndex < hopPoints.Count - 1)
                 {
@@ -90,7 +105,6 @@ public class BunnyMovement : MonoBehaviour
                 }
                 else
                 {
-                    // Reached final destination
                     isMoving = false;
                     waitTimer = Random.Range(minWaitTime, maxWaitTime);
                     transform.position = hopPoints[hopPoints.Count - 1];
@@ -98,13 +112,9 @@ public class BunnyMovement : MonoBehaviour
             }
             else
             {
-                // Calculate current position in hop
                 Vector2 currentPos = Vector2.Lerp(currentHopStart, currentHopEnd, hopProgress);
-
-                // Add arc movement
                 float heightMultiplier = Mathf.Sin(hopProgress * Mathf.PI);
                 Vector3 hopOffset = Vector3.up * (currentHopHeight * heightMultiplier);
-
                 transform.position = new Vector3(currentPos.x, currentPos.y, 0) + hopOffset;
 
                 // Update sprite direction
@@ -133,7 +143,6 @@ public class BunnyMovement : MonoBehaviour
     private void SetNewRandomTarget()
     {
         startPosition = transform.position;
-
         float randomAngle = Random.Range(0f, 360f);
         float randomDistance = Random.Range(1f, wanderRadius);
 
@@ -143,8 +152,6 @@ public class BunnyMovement : MonoBehaviour
         );
 
         currentTarget = (Vector2)transform.position + offset;
-
-        // Generate hop points along the path
         GenerateHopPoints();
 
         currentHopIndex = 0;
@@ -159,16 +166,13 @@ public class BunnyMovement : MonoBehaviour
         float totalDistance = Vector2.Distance(transform.position, currentTarget);
         int numberOfHops = Mathf.CeilToInt(totalDistance / hopDistance);
 
-        // Add start point
         hopPoints.Add((Vector2)transform.position);
 
-        // Generate intermediate hop points
         for (int i = 1; i < numberOfHops; i++)
         {
             float distance = i * hopDistance;
             if (distance > totalDistance) break;
 
-            // Add some randomness to hop points
             Vector2 idealPoint = (Vector2)transform.position + direction * distance;
             float randomOffset = Random.Range(-0.1f, 0.1f);
             Vector2 perpendicular = new Vector2(-direction.y, direction.x) * randomOffset;
@@ -176,8 +180,39 @@ public class BunnyMovement : MonoBehaviour
             hopPoints.Add(idealPoint + perpendicular);
         }
 
-        // Add end point
         hopPoints.Add(currentTarget);
+    }
+
+    public void OnHit()
+    {
+        Debug.Log($"Bunny hit! Spawning food at {gameObject.name}");
+        if (foodPrefab != null)
+        {
+            Vector3 spawnPosition = transform.position + new Vector3(foodSpawnOffset.x, foodSpawnOffset.y, 0);
+            GameObject food = Instantiate(foodPrefab, spawnPosition, Quaternion.identity);
+            Debug.Log($"Spawned food at position: {spawnPosition}");
+        }
+        else
+        {
+            Debug.LogError("Food prefab not assigned to bunny!");
+        }
+
+        Destroy(gameObject);
+    }
+
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        Debug.Log($"Bunny triggered with: {other.gameObject.name}");
+        Spear spear = other.GetComponent<Spear>();
+        if (spear != null)
+        {
+            Debug.Log("Bunny hit by spear!");
+        }
+    }
+
+    private void OnValidate()
+    {
+        UpdateColliderSettings();
     }
 
     private void OnDrawGizmosSelected()
@@ -185,7 +220,6 @@ public class BunnyMovement : MonoBehaviour
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, wanderRadius);
 
-        // Draw hop points and path
         if (hopPoints.Count > 1)
         {
             Gizmos.color = Color.green;
@@ -196,10 +230,5 @@ public class BunnyMovement : MonoBehaviour
             }
             Gizmos.DrawWireSphere(hopPoints[hopPoints.Count - 1], 0.1f);
         }
-    }
-
-    private void OnValidate()
-    {
-        UpdateColliderSettings();
     }
 }
