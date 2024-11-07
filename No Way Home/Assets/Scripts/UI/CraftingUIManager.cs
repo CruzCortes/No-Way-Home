@@ -196,7 +196,6 @@ public class CraftingUIManager : MonoBehaviour
 
     private void SetupCraftingItems()
     {
-        // Clear existing items
         foreach (Transform child in selectionPanel)
         {
             if (child.name.Contains("Button"))
@@ -205,11 +204,15 @@ public class CraftingUIManager : MonoBehaviour
             }
         }
 
-        // Only show campfire in Structures category
         if (currentCategory == "Structures")
         {
             var campfireButton = CreateCraftingItemButton("Campfire", "A warm fire to keep you cozy\nCost: 3 Wood");
             campfireButton.onClick.AddListener(() => SelectCraftingItem("Campfire"));
+        }
+        else if (currentCategory == "Utilities")
+        {
+            var spearButton = CreateCraftingItemButton("Spear", "A throwing weapon\nCost: 1 Wood, 1 Rock Type 1");
+            spearButton.onClick.AddListener(() => SelectCraftingItem("Spear"));
         }
     }
 
@@ -363,6 +366,18 @@ public class CraftingUIManager : MonoBehaviour
             craftButton.interactable = canCraft;
             craftButton.GetComponent<Image>().color = canCraft ? buttonNormalColor : buttonDisabledColor;
         }
+        else if (selectedCraftableItem == "Spear")
+        {
+            bool hasWood = playerController.woodCount >= 1;
+            bool hasRock = playerController.collectedRocks[0] >= 1;
+            bool canCraft = hasWood && hasRock;
+
+            requirementsText.text = $"Requirements:\n\nWood: {playerController.woodCount}/1\n" +
+                                  $"Rock Type 1: {playerController.collectedRocks[0]}/1\n\n" +
+                                  (canCraft ? "Ready to craft!" : "Not enough resources!");
+            craftButton.interactable = canCraft;
+            craftButton.GetComponent<Image>().color = canCraft ? buttonNormalColor : buttonDisabledColor;
+        }
     }
 
     private void OnCraftButtonClicked()
@@ -373,6 +388,16 @@ public class CraftingUIManager : MonoBehaviour
             playerController.AddCampfire();
             UpdateCraftingRequirements();
             Debug.Log("Crafted a campfire!");
+        }
+        else if (selectedCraftableItem == "Spear" &&
+                 playerController.woodCount >= 1 &&
+                 playerController.collectedRocks[0] >= 1)
+        {
+            playerController.RemoveWood(1);
+            playerController.collectedRocks[0]--;
+            playerController.CollectSpear();
+            UpdateCraftingRequirements();
+            Debug.Log("Crafted a spear!");
         }
     }
 }

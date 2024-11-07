@@ -2,6 +2,7 @@ using UnityEngine;
 
 public class PlayerController : MonoBehaviour
 {
+    [Header("Movement Settings")]
     public float moveSpeed = 5f;
     private Rigidbody2D rb;
     private Vector2 movement;
@@ -34,69 +35,27 @@ public class PlayerController : MonoBehaviour
     private bool isLeftFoot = true;
     private Vector2 lastMovementDirection = Vector2.right;
 
-    // Rocks and Wood collection
-    // rocks have types. current: 2
-    // Inventory
     [Header("Inventory")]
     public int[] collectedRocks = new int[2];  // Different rock types
     public int woodCount = 0;
-    public int campfireCount = 0;  // Added campfire tracking
+    public int campfireCount = 0;
 
-    public void CollectWood()
-    {
-        woodCount++;
-        Debug.Log($"Collected wood. Total: {woodCount}");
-    }
+    [Header("Spear Settings")]
+    public GameObject spearPrefab;
+    private GameObject activeSpear;
+    public int spearCount = 0;
+    private const int SPEAR_WOOD_COST = 1;
+    private const int SPEAR_ROCK_COST = 1;
+    [SerializeField] private Vector3 spearOffset = new Vector3(0, 0.17f, 0);
 
-    public void CollectRock(int rockType)
-    {
-        if (rockType < collectedRocks.Length)
-        {
-            collectedRocks[rockType]++;
-            Debug.Log($"Collected rock type {rockType}. Total: {collectedRocks[rockType]}");
-        }
-    }
-
-    // Crafting-related methods
-    public void RemoveWood(int amount)
-    {
-        woodCount = Mathf.Max(0, woodCount - amount);
-        Debug.Log($"Used {amount} wood. Remaining: {woodCount}");
-    }
-
-    public void AddCampfire()
-    {
-        campfireCount++;
-        Debug.Log($"Added campfire to inventory. Total: {campfireCount}");
-    }
-
-    public bool HasEnoughWood(int amount)
-    {
-        return woodCount >= amount;
-    }
-
-    // Additional utility methods for inventory management
-    public int GetItemCount(string itemName)
-    {
-        switch (itemName.ToLower())
-        {
-            case "wood":
-                return woodCount;
-            case "campfire":
-                return campfireCount;
-            case "rock 1":
-                return collectedRocks[0];
-            case "rock 2":
-                return collectedRocks[1];
-            default:
-                return 0;
-        }
-    }
+    private HotBarManager hotBarManager;
+    private string currentSelectedItem;
 
     void Start()
     {
         rb = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
+        hotBarManager = FindObjectOfType<HotBarManager>();
 
         if (animator == null)
         {
@@ -107,6 +66,34 @@ public class PlayerController : MonoBehaviour
         {
             animator.runtimeAnimatorController = animatorController;
         }
+
+        CreateSpearVisual();
+    }
+
+    private void CreateSpearVisual()
+    {
+        if (spearPrefab != null && activeSpear == null)
+        {
+            activeSpear = Instantiate(spearPrefab, transform.position + spearOffset, Quaternion.identity);
+            activeSpear.transform.parent = transform;
+            activeSpear.transform.localPosition = spearOffset;
+
+            // Disable collider for the visual representation
+            var collider = activeSpear.GetComponent<Collider2D>();
+            if (collider != null)
+            {
+                collider.enabled = false;
+            }
+
+            // Remove any Spear component from the visual representation
+            var spearComponent = activeSpear.GetComponent<Spear>();
+            if (spearComponent != null)
+            {
+                Destroy(spearComponent);
+            }
+
+            activeSpear.SetActive(false);
+        }
     }
 
     void Update()
@@ -114,6 +101,17 @@ public class PlayerController : MonoBehaviour
         // Get input
         movement.x = Input.GetAxisRaw("Horizontal");
         movement.y = Input.GetAxisRaw("Vertical");
+
+        // Check selected item from hotbar
+        if (hotBarManager != null)
+        {
+            string selectedItem = hotBarManager.GetSelectedItem();
+            if (selectedItem != currentSelectedItem)
+            {
+                currentSelectedItem = selectedItem;
+                UpdateSpearVisibility();
+            }
+        }
 
         // Handle animations
         if (animator != null)
@@ -144,6 +142,12 @@ public class PlayerController : MonoBehaviour
             }
         }
 
+        // Throw spear
+        if (Input.GetMouseButtonDown(0) && currentSelectedItem == "Spear" && spearCount > 0)
+        {
+            ThrowSpear();
+        }
+
         if (movement != Vector2.zero)
         {
             lastMovementDirection = movement.normalized;
@@ -170,6 +174,113 @@ public class PlayerController : MonoBehaviour
         rb.MovePosition(rb.position + movement.normalized * moveSpeed * Time.fixedDeltaTime);
     }
 
+    #region Spear Management
+    public void CollectSpear()
+    {
+        spearCount++;
+        UpdateSpearVisibility();
+        Debug.Log($"Collected spear. Total: {spearCount}");
+    }
+
+    private void UpdateSpearVisibility()
+    {
+        if (activeSpear == null)
+        {
+            CreateSpearVisual();
+        }
+
+        if (activeSpear != null)
+        {
+            bool shouldShowSpear = currentSelectedItem == "Spear" && spearCount > 0;
+            activeSpear.SetActive(shouldShowSpear);
+        }
+    }
+
+    public void ThrowSpear()
+    {
+        if (spearCount > 0 && currentSelectedItem == "Spear")
+        {
+            Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            mousePos.z = 0;
+
+            // Hide the visual spear
+            if (activeSpear != null)
+            {
+                activeSpear.SetActive(false);
+            }
+
+            // Create and throw the actual spear
+            GameObject thrownSpear = Instantiate(spearPrefab, transform.position + spearOffset, Quaternion.identity);
+            Spear spearComponent = thrownSpear.GetComponent<Spear>();
+            if (spearComponent != null)
+            {
+                spearComponent.InitializeThrow(transform.position + spearOffset, mousePos);
+                spearComponent.DecrementUses();
+            }
+
+            spearCount--;
+            UpdateSpearVisibility();
+            Debug.Log($"Threw spear. Remaining: {spearCount}");
+        }
+    }
+    #endregion
+
+    #region Resource Collection
+    public void CollectWood()
+    {
+        woodCount++;
+        Debug.Log($"Collected wood. Total: {woodCount}");
+    }
+
+    public void CollectRock(int rockType)
+    {
+        if (rockType < collectedRocks.Length)
+        {
+            collectedRocks[rockType]++;
+            Debug.Log($"Collected rock type {rockType}. Total: {collectedRocks[rockType]}");
+        }
+    }
+    #endregion
+
+    #region Inventory Management
+    public void RemoveWood(int amount)
+    {
+        woodCount = Mathf.Max(0, woodCount - amount);
+        Debug.Log($"Used {amount} wood. Remaining: {woodCount}");
+    }
+
+    public void AddCampfire()
+    {
+        campfireCount++;
+        Debug.Log($"Added campfire to inventory. Total: {campfireCount}");
+    }
+
+    public bool HasEnoughWood(int amount)
+    {
+        return woodCount >= amount;
+    }
+
+    public int GetItemCount(string itemName)
+    {
+        switch (itemName.ToLower())
+        {
+            case "wood":
+                return woodCount;
+            case "campfire":
+                return campfireCount;
+            case "spear":
+                return spearCount;
+            case "rock 1":
+                return collectedRocks[0];
+            case "rock 2":
+                return collectedRocks[1];
+            default:
+                return 0;
+        }
+    }
+    #endregion
+
+    #region Footprint System
     void SpawnFootprint()
     {
         if (footprintPrefab != null)
@@ -210,4 +321,5 @@ public class PlayerController : MonoBehaviour
             Debug.LogWarning("Footprint prefab not assigned in PlayerController.");
         }
     }
+    #endregion
 }

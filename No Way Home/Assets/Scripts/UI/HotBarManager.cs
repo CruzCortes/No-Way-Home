@@ -171,6 +171,15 @@ public class HotBarManager : MonoBehaviour
             currentSlot++;
         }
 
+        // Update display for spear
+        if (currentSlot < numberOfSlots && playerController.spearCount > 0)
+        {
+            itemNameTexts[currentSlot].text = "Spear";
+            quantityTexts[currentSlot].text = playerController.spearCount.ToString();
+            UpdateSlotVisuals(currentSlot);
+            currentSlot++;
+        }
+
         // Clear remaining slots
         for (int i = currentSlot; i < numberOfSlots; i++)
         {
