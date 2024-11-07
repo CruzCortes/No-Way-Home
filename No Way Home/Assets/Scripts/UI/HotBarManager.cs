@@ -162,6 +162,15 @@ public class HotBarManager : MonoBehaviour
             currentSlot++;
         }
 
+        // Update display for food
+        if (currentSlot < numberOfSlots && playerController.foodCount > 0)
+        {
+            itemNameTexts[currentSlot].text = "Food";
+            quantityTexts[currentSlot].text = playerController.foodCount.ToString();
+            UpdateSlotVisuals(currentSlot);
+            currentSlot++;
+        }
+
         // Update display for campfire
         if (currentSlot < numberOfSlots && playerController.campfireCount > 0)
         {

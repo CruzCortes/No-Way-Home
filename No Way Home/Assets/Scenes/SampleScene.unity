@@ -168,16 +168,18 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   groundPrefab: {fileID: 6231950605755943108, guid: e2c9bb9bbe4a14acdabbaa86f7704da8, type: 3}
   playerPrefab: {fileID: 1834450952}
-  mainCamera: {fileID: 519420031}
-  worldContainer: {fileID: 505957576}
-  tileSize: 1
   rockPrefab1: {fileID: 7516243249096800838, guid: 1bdd2bec00f3b4e89ab24904c7c45a22, type: 3}
   rockPrefab2: {fileID: 8948387960852612926, guid: d16c142735b8c4ea9a2290f419c1c730, type: 3}
-  rockSpawnChance: 0.05
   treeStumpPrefab: {fileID: 3609978208163730650, guid: 5d3ac8f885bb1465b8ce5e2851373522, type: 3}
   treeTopPrefab: {fileID: 251260468785459163, guid: 5d335cc6ae0644095aee619e1810c541, type: 3}
-  treeSpawnChance: 0.019
   woodPrefab: {fileID: 3255002914993434176, guid: 938690c628e4c408abecbb35a95f7760, type: 3}
+  chunkSize: 16
+  tileSize: 1
+  chunkLoadRadius: 2
+  rockSpawnChance: 0.05
+  treeSpawnChance: 0.019
+  mainCamera: {fileID: 519420031}
+  worldContainer: {fileID: 505957576}
 --- !u!1 &515166090
 GameObject:
   m_ObjectHideFlags: 0
@@ -549,6 +551,9 @@ MonoBehaviour:
   hungerDecayRate: 2
   healthDecayRate: 5
   statusPanel: {fileID: 1674824559}
+  verticalPadding: 10
+  horizontalPadding: 20
+  barHeight: 30
   isNearFire: 0
 --- !u!4 &661552149
 Transform:
@@ -659,6 +664,58 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 914.44257, y: 584.7361, z: 4.736974}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &956279335
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 956279337}
+  - component: {fileID: 956279336}
+  m_Layer: 0
+  m_Name: TerrainGen
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &956279336
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 956279335}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8ddab4e2de1946a98f65b4c67d85160, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  waterSettings:
+    riverWidth: 1.5
+    minRiverLength: 10
+    riverWindiness: 0.8
+    lakeMinSize: 5
+    lakeMaxSize: 15
+    lakeFrequency: 0.1
+  frozenWaterPrefab: {fileID: 9002808944734612135, guid: ac86640e2dcd14c2fbfeedea53d69030, type: 3}
+--- !u!4 &956279337
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 956279335}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -3.5208285, y: 7.736551, z: -10.162206}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -1417,8 +1474,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -797, y: -467.49}
-  m_SizeDelta: {x: 267.9751, y: 95.0397}
+  m_AnchoredPosition: {x: -832.224, y: -459.58}
+  m_SizeDelta: {x: 226.352, y: 160.8401}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1674824560
 MonoBehaviour:
@@ -1433,14 +1490,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0.3529412}
+  m_Color: {r: 0, g: 0, b: 0, a: 0}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 0}
+  m_Sprite: {fileID: 10905, guid: 0000000000000000f000000000000000, type: 0}
   m_Type: 1
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -1549,7 +1606,7 @@ SpriteRenderer:
   m_LightmapParameters: {fileID: 0}
   m_SortingLayerID: 0
   m_SortingLayer: 0
-  m_SortingOrder: 2
+  m_SortingOrder: 3
   m_Sprite: {fileID: 21300000, guid: ce4bb50d8ba194754ab01e23db4853ac, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
@@ -1941,3 +1998,4 @@ SceneRoots:
   - {fileID: 515166093}
   - {fileID: 1142063072}
   - {fileID: 2140283546}
+  - {fileID: 956279337}

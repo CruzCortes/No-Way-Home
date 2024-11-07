@@ -64,22 +64,25 @@ Material:
     - _BumpScale: 1
     - _Cutoff: 0.5
     - _DetailNormalMapScale: 1
+    - _DetailScale: 20
     - _DstBlend: 0
     - _GlossMapScale: 1
     - _Glossiness: 0.5
     - _GlossyReflections: 1
     - _Metallic: 0
     - _Mode: 0
-    - _NoiseScale: 20
+    - _NoiseScale: 27.74
     - _OcclusionStrength: 1
     - _Parallax: 0.02
     - _PixelSize: 32
     - _RockDensity: 0.1
     - _RockFrequency: 0.05
+    - _Roughness: 0.7
     - _Seed: 100
     - _SmoothnessTextureChannel: 0
     - _SnowAmount: 0.54
     - _SnowFluffiness: 0.7
+    - _SnowHeight: 0.1
     - _SnowNoise: 0.3
     - _SpecularHighlights: 1
     - _SrcBlend: 1
@@ -90,5 +93,7 @@ Material:
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
     - _IceColor: {r: 0.8479441, g: 0.91866064, b: 0.9716981, a: 1}
     - _RockColor: {r: 0.19999996, g: 0.19999996, b: 0.19999996, a: 1}
+    - _ShadowColor: {r: 0.8, g: 0.85, b: 0.9, a: 1}
     - _SnowColor: {r: 1, g: 1, b: 1, a: 1}
+    - _SnowHighlight: {r: 1, g: 1, b: 1, a: 1}
   m_BuildTextureStacks: []

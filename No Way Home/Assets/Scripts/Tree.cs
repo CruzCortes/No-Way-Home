@@ -28,7 +28,7 @@ public class Tree : MonoBehaviour
     public void Initialize()
     {
         if (stump != null) stump.sortingOrder = 0;
-        if (top != null) top.sortingOrder = 2;
+        if (top != null) top.sortingOrder = 3; // was 2
 
         // Setup main collision collider
         if (treeCollider == null)

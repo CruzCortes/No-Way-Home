@@ -10,6 +10,7 @@ public class PlayerController : MonoBehaviour
     [Header("Animation References")]
     public RuntimeAnimatorController animatorController;
     private Animator animator;
+    private PlayerStatsManager playerStatsManager;
 
     // Animation Trigger Parameters
     private static readonly string TRIGGER_IDLE = "Idle";
@@ -67,6 +68,15 @@ public class PlayerController : MonoBehaviour
         rb = GetComponent<Rigidbody2D>();
         animator = GetComponent<Animator>();
         hotBarManager = FindObjectOfType<HotBarManager>();
+        // Add this line to get the PlayerStatsManager
+        playerStatsManager = GetComponent<PlayerStatsManager>();
+
+        // If PlayerStatsManager is not on the same GameObject, try to find it in the scene
+        if (playerStatsManager == null)
+        {
+            playerStatsManager = FindObjectOfType<PlayerStatsManager>();
+            Debug.Log("Found PlayerStatsManager in scene");
+        }
 
         if (animator == null)
         {
@@ -80,6 +90,7 @@ public class PlayerController : MonoBehaviour
 
         CreateSpearVisual();
     }
+
 
     private void CreateSpearVisual()
     {
@@ -159,6 +170,12 @@ public class PlayerController : MonoBehaviour
             ThrowSpear();
         }
 
+        // Handle eating food
+        if (Input.GetKeyDown(KeyCode.E) && currentSelectedItem == "Food" && foodCount > 0)
+        {
+            EatSelectedFood();
+        }
+
         if (movement != Vector2.zero)
         {
             lastMovementDirection = movement.normalized;
@@ -177,6 +194,20 @@ public class PlayerController : MonoBehaviour
         else
         {
             footprintTimer = footprintSpawnInterval;
+        }
+    }
+
+    private void EatSelectedFood()
+    {
+        if (foodCount > 0 && playerStatsManager != null)
+        {
+            playerStatsManager.EatFood();
+            foodCount--;
+            Debug.Log($"Ate food. Remaining: {foodCount}");
+        }
+        else if (playerStatsManager == null)
+        {
+            Debug.LogError("PlayerStatsManager is missing! Make sure it's attached to the player or exists in the scene.");
         }
     }
 
