@@ -54,6 +54,15 @@ public class WorldGenerator : MonoBehaviour
         if (worldContainer == null)
             worldContainer = transform;
 
+        // Add weather and shadow systems
+        if (FindObjectOfType<WeatherSystem>() == null)
+        {
+            GameObject weatherObj = new GameObject("WeatherSystem");
+            weatherObj.AddComponent<WeatherSystem>();
+        }
+
+        gameObject.AddComponent<ShadowController>();
+
         SetupPlayer();
         UpdateChunks();
     }
@@ -187,6 +196,7 @@ public class WorldGenerator : MonoBehaviour
                 Vector3 worldPosition = new Vector3(tilePosition.x * tileSize, tilePosition.y * tileSize, 0);
                 GameObject tile = Instantiate(groundPrefab, worldPosition, Quaternion.identity, chunkObject.transform);
                 tile.name = $"GroundTile_{tilePosition.x}_{tilePosition.y}";
+                // The tag is already set in the prefab as "GroundTile"
 
                 // Use the same seed for consistent generation
                 long seed = tilePosition.x + tilePosition.y * 10000L;
