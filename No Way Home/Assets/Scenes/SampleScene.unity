@@ -587,7 +587,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3f9de9e9edc374279bd048c852560e47, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  dayDuration: 240
+  dayDuration: 600
   timeOfDay: 0.5
   isPaused: 0
   timePhases: []
@@ -599,20 +599,15 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 519420028}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: c0dff4984b1974a3980b8a0176c41c4b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  textureSize: 256
-  noiseScale: 20
-  octaves: 4
-  persistence: 0.5
-  lacunarity: 2
+  currentState: 0
+  stateCheckInterval: 100
   snowIntensity: 0
-  horizontalSpeed: 1
-  verticalSpeed: 1
-  tiling: 1
+  scrollSpeed: 1
 --- !u!1 &607558162
 GameObject:
   m_ObjectHideFlags: 0
@@ -749,7 +744,7 @@ MonoBehaviour:
   maxHealth: 100
   maxHunger: 100
   maxTemperature: 100
-  hungerDecayRate: 2
+  hungerDecayRate: 0.02
   healthDecayRate: 5
   temperatureDecayRate: 5
   bodyTemperatureInertia: 0.1
