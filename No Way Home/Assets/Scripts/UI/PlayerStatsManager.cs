@@ -12,18 +12,28 @@ public class PlayerStatsManager : MonoBehaviour
     [Header("Decay Rates")]
     [SerializeField] private float hungerDecayRate = 10f;
     [SerializeField] private float healthDecayRate = 8f;
+    [SerializeField] private float temperatureDecayRate = 5f;
+
+    [Header("Body Temperature Settings")]
+    [SerializeField] private float bodyTemperatureInertia = 0.1f;
+    [SerializeField] private float environmentalResistance = 0.8f;
+    [SerializeField] private float optimalTemperature = 70f;
+    [SerializeField] private float freezingTemperature = 0f;
+    [SerializeField] private float environmentalTemperatureEffect = 0.5f;
 
     [Header("UI Settings")]
     [SerializeField] private RectTransform statusPanel;
-    [SerializeField] private float verticalPadding = 10f;  // Padding between bars
-    [SerializeField] private float horizontalPadding = 20f;  // Padding from edges
-    [SerializeField] private float barHeight = 5f;  // Height of each bar
+    [SerializeField] private float verticalPadding = 10f;
+    [SerializeField] private float horizontalPadding = 20f;
+    [SerializeField] private float barHeight = 5f;
 
     private float currentHealth;
     private float currentHunger;
     private float currentTemperature;
+    private float currentHeatFromSource = 0f;
+    private float temperatureExposureTime = 0f;
+    private float previousEnvironmentTemp = 20f;
     private bool isDead = false;
-    public bool isNearFire = false;
 
     private Image healthBar;
     private Image hungerBar;
@@ -32,46 +42,49 @@ public class PlayerStatsManager : MonoBehaviour
     private TextMeshProUGUI hungerText;
     private TextMeshProUGUI temperatureText;
 
+    private PlayerController playerController;
+    private float baseMovementSpeed;
+
     private void Start()
     {
         currentHealth = maxHealth;
         currentHunger = maxHunger;
-        currentTemperature = maxTemperature;
+        currentTemperature = optimalTemperature; // Start at optimal body temperature
         CreateStatusBars();
+
+        playerController = GetComponent<PlayerController>();
+        if (playerController != null)
+        {
+            baseMovementSpeed = playerController.moveSpeed;
+        }
     }
 
     private void CreateStatusBars()
     {
-        // Set up the container
         GameObject containerObj = new GameObject("BarsContainer");
         RectTransform containerRect = containerObj.AddComponent<RectTransform>();
         containerRect.SetParent(statusPanel, false);
 
-        // Set container to fill parent with padding
         containerRect.anchorMin = new Vector2(0, 0);
         containerRect.anchorMax = new Vector2(1, 1);
         containerRect.offsetMin = new Vector2(horizontalPadding, verticalPadding);
         containerRect.offsetMax = new Vector2(-horizontalPadding, -verticalPadding);
 
-        // Calculate total height needed
         float totalHeight = (barHeight * 3) + (verticalPadding * 2);
-        float spacing = (containerRect.rect.height - totalHeight) / 4; // Divide remaining space
+        float spacing = (containerRect.rect.height - totalHeight) / 4;
 
-        // Create bars with new colors
-        Color healthColor = new Color(0.8f, 0.2f, 0.2f, 0.95f);  // Strong red
-        Color hungerColor = new Color(1f, 0.8f, 0.2f, 0.95f);    // Yellow
-        Color tempColor = new Color(0.1f, 0.2f, 0.4f, 0.95f);    // Dark navy blue
+        Color healthColor = new Color(0.8f, 0.2f, 0.2f, 0.95f);
+        Color hungerColor = new Color(1f, 0.8f, 0.2f, 0.95f);
+        Color tempColor = new Color(0.1f, 0.2f, 0.4f, 0.95f);
 
         healthBar = CreateBar("HealthBar", healthColor, 0, spacing, containerRect);
         hungerBar = CreateBar("HungerBar", hungerColor, 1, spacing, containerRect);
         temperatureBar = CreateBar("TemperatureBar", tempColor, 2, spacing, containerRect);
 
-        // Create texts with improved visibility
         healthText = CreateText(healthBar.transform, "100%");
         hungerText = CreateText(hungerBar.transform, "100%");
         temperatureText = CreateText(temperatureBar.transform, "100%");
 
-        // Add drop shadow to text for better readability
         foreach (var text in new[] { healthText, hungerText, temperatureText })
         {
             text.enableVertexGradient = true;
@@ -90,16 +103,13 @@ public class PlayerStatsManager : MonoBehaviour
         RectTransform barRect = barObj.AddComponent<RectTransform>();
         barRect.SetParent(container);
 
-        // Calculate position from top
         float topPosition = -(spacing * (index + 1) + barHeight * index);
 
-        // Set anchors to stretch horizontally but maintain fixed height
         barRect.anchorMin = new Vector2(0, 1);
         barRect.anchorMax = new Vector2(1, 1);
         barRect.anchoredPosition = new Vector2(0, topPosition);
         barRect.sizeDelta = new Vector2(0, barHeight);
 
-        // Create background
         GameObject bgObj = new GameObject("Background");
         Image bgImage = bgObj.AddComponent<Image>();
         RectTransform bgRect = bgObj.GetComponent<RectTransform>();
@@ -110,11 +120,9 @@ public class PlayerStatsManager : MonoBehaviour
         bgRect.anchorMax = Vector2.one;
         bgRect.sizeDelta = Vector2.zero;
 
-        // Dark semi-transparent background
         bgImage.color = new Color(0.15f, 0.15f, 0.15f, 0.9f);
-        bgImage.sprite = CreateRoundedRectSprite(400, 40, 8); // Width, height, and corner radius
+        bgImage.sprite = CreateRoundedRectSprite(400, 40, 8);
 
-        // Create fill
         GameObject fillObj = new GameObject("Fill");
         Image fillImage = fillObj.AddComponent<Image>();
         RectTransform fillRect = fillObj.GetComponent<RectTransform>();
@@ -138,7 +146,6 @@ public class PlayerStatsManager : MonoBehaviour
     {
         Texture2D texture = new Texture2D(width, height);
 
-        // Fill texture with transparent pixels initially
         Color[] colors = new Color[width * height];
         for (int i = 0; i < colors.Length; i++)
         {
@@ -146,34 +153,28 @@ public class PlayerStatsManager : MonoBehaviour
         }
         texture.SetPixels(colors);
 
-        // Draw the rounded rectangle
         for (int y = 0; y < height; y++)
         {
             for (int x = 0; x < width; x++)
             {
-                // Check if we're in a corner region
                 bool inCorner = false;
                 float distanceFromCorner = 0f;
 
-                // Top-left corner
                 if (x < cornerRadius && y < cornerRadius)
                 {
                     distanceFromCorner = Vector2.Distance(new Vector2(x, y), new Vector2(cornerRadius, cornerRadius));
                     inCorner = true;
                 }
-                // Top-right corner
                 else if (x >= width - cornerRadius && y < cornerRadius)
                 {
                     distanceFromCorner = Vector2.Distance(new Vector2(x, y), new Vector2(width - cornerRadius, cornerRadius));
                     inCorner = true;
                 }
-                // Bottom-left corner
                 else if (x < cornerRadius && y >= height - cornerRadius)
                 {
                     distanceFromCorner = Vector2.Distance(new Vector2(x, y), new Vector2(cornerRadius, height - cornerRadius));
                     inCorner = true;
                 }
-                // Bottom-right corner
                 else if (x >= width - cornerRadius && y >= height - cornerRadius)
                 {
                     distanceFromCorner = Vector2.Distance(new Vector2(x, y), new Vector2(width - cornerRadius, height - cornerRadius));
@@ -182,7 +183,6 @@ public class PlayerStatsManager : MonoBehaviour
 
                 if (inCorner)
                 {
-                    // Set pixel based on distance from corner
                     if (distanceFromCorner <= cornerRadius)
                     {
                         texture.SetPixel(x, y, Color.white);
@@ -190,7 +190,6 @@ public class PlayerStatsManager : MonoBehaviour
                 }
                 else
                 {
-                    // Non-corner pixels are always white
                     texture.SetPixel(x, y, Color.white);
                 }
             }
@@ -233,24 +232,17 @@ public class PlayerStatsManager : MonoBehaviour
     {
         if (isDead) return;
 
-        // Hunger decreases faster for testing
+        // Hunger system
         currentHunger = Mathf.Max(0, currentHunger - (hungerDecayRate * Time.deltaTime));
 
-        // Health decreases when hunger is 0
+        // Health system
         if (currentHunger <= 0)
         {
             currentHealth = Mathf.Max(0, currentHealth - (healthDecayRate * Time.deltaTime));
         }
 
-        // Temperature handling
-        if (isNearFire && currentTemperature < maxTemperature)
-        {
-            currentTemperature = Mathf.Min(maxTemperature, currentTemperature + (10f * Time.deltaTime));
-        }
-        else if (!isNearFire && currentTemperature > 0)
-        {
-            currentTemperature = Mathf.Max(0, currentTemperature - (5f * Time.deltaTime));
-        }
+        // Temperature system
+        UpdateTemperature();
 
         if (currentHealth <= 0 && !isDead)
         {
@@ -259,6 +251,98 @@ public class PlayerStatsManager : MonoBehaviour
         }
 
         UpdateUI();
+        UpdatePlayerSpeed();
+    }
+
+    private void UpdateTemperature()
+    {
+        if (WeatherSystem.Instance == null) return;
+
+        float envTemp = WeatherSystem.Instance.GetCurrentTemperature();
+        float windSpeed = WeatherSystem.Instance.GetWindSpeed();
+
+        // Track exposure time
+        if (Mathf.Abs(previousEnvironmentTemp - envTemp) > 5f)
+        {
+            temperatureExposureTime = 0f;
+        }
+        else
+        {
+            temperatureExposureTime += Time.deltaTime;
+        }
+        previousEnvironmentTemp = envTemp;
+
+        // Calculate temperature change with proper use of all variables
+        float exposureFactor = Mathf.Clamp01(temperatureExposureTime / 60f);
+
+        // Body's natural regulation toward optimal temperature (stronger when far from optimal)
+        float tempDifferenceFromOptimal = optimalTemperature - currentTemperature;
+        float bodyRegulation = tempDifferenceFromOptimal * bodyTemperatureInertia * Time.deltaTime;
+
+        // Environmental effect uses resistance and exposure
+        float environmentalDifference = envTemp - currentTemperature;
+        float environmentalEffect = environmentalDifference *
+                                  environmentalTemperatureEffect *
+                                  (1f - environmentalResistance) *
+                                  exposureFactor *
+                                  Time.deltaTime;
+
+        // Wind chill effect (stronger in cold)
+        float windChill = 0f;
+        if (currentTemperature < optimalTemperature - 10f)
+        {
+            float coldnessFactor = (optimalTemperature - currentTemperature) / optimalTemperature;
+            windChill = windSpeed * 0.2f * coldnessFactor * exposureFactor * Time.deltaTime;
+        }
+
+        // Heat source (campfire) effect (stronger when cold)
+        float heatEffect = 0f;
+        if (currentHeatFromSource > 0)
+        {
+            float coldnessFactor = 1f + Mathf.Max(0, (optimalTemperature - currentTemperature) / optimalTemperature);
+            heatEffect = currentHeatFromSource * coldnessFactor * Time.deltaTime;
+        }
+
+        // Natural temperature decay (slower when near optimal temperature)
+        float tempDifference = Mathf.Abs(optimalTemperature - currentTemperature);
+        float decayFactor = tempDifference / optimalTemperature;
+        float decay = temperatureDecayRate * decayFactor * Time.deltaTime;
+
+        // Calculate final temperature change
+        float tempChange = bodyRegulation + environmentalEffect + heatEffect - windChill - decay;
+
+        // Apply change very gradually
+        currentTemperature = Mathf.MoveTowards(
+            currentTemperature,
+            currentTemperature + tempChange,
+            Time.deltaTime * 3f // Slower rate for more gradual changes
+        );
+
+        // Clamp to valid range
+        currentTemperature = Mathf.Clamp(currentTemperature, 0f, maxTemperature);
+    }
+
+    private void UpdatePlayerSpeed()
+    {
+        if (playerController == null) return;
+
+        float speedMultiplier = 1f;
+
+        if (currentTemperature <= freezingTemperature)
+        {
+            speedMultiplier = 0.1f;
+        }
+        else if (currentTemperature < optimalTemperature - 20f)
+        {
+            float normalizedTemp = (currentTemperature - freezingTemperature) / (optimalTemperature - 20f - freezingTemperature);
+            speedMultiplier = Mathf.Lerp(0.1f, 0.7f, normalizedTemp);
+        }
+        else if (currentTemperature < optimalTemperature - 10f)
+        {
+            speedMultiplier = 0.8f;
+        }
+
+        playerController.moveSpeed = baseMovementSpeed * speedMultiplier;
     }
 
     private void UpdateUI()
@@ -282,13 +366,13 @@ public class PlayerStatsManager : MonoBehaviour
     public void EatFood()
     {
         if (isDead) return;
-        float recoveryAmount = maxHunger * 0.25f; // 25% of max hunger
+        float recoveryAmount = maxHunger * 0.25f;
         currentHunger = Mathf.Min(maxHunger, currentHunger + recoveryAmount);
         UpdateUI();
     }
 
-    public void SetNearFire(bool near)
+    public void SetHeatSource(float heatAmount)
     {
-        isNearFire = near;
+        currentHeatFromSource = heatAmount;
     }
 }
