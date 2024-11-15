@@ -1549,6 +1549,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 6731922853739561647, guid: 52a0406475d7b46f68520b963b4d4f11, type: 3}
     - target: {fileID: 2711948416174178911, guid: f82417529dc9d4dc1b7db77c5933b4db, type: 3}
+      propertyPath: woodWallPrefab
+      value: 
+      objectReference: {fileID: 7057607228753986526, guid: 52cf32275c75e4a9bb48f30487c467df, type: 3}
+    - target: {fileID: 2711948416174178911, guid: f82417529dc9d4dc1b7db77c5933b4db, type: 3}
       propertyPath: footprintPrefab
       value: 
       objectReference: {fileID: 5617837019770187468, guid: ae047bfd358934b1bb58d768856ba86e, type: 3}

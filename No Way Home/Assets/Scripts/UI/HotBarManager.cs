@@ -144,7 +144,7 @@ public class HotBarManager : MonoBehaviour
         // Update display for rocks
         for (int i = 0; i < playerController.collectedRocks.Length; i++)
         {
-            if (currentSlot < numberOfSlots)
+            if (currentSlot < numberOfSlots && playerController.collectedRocks[i] > 0)
             {
                 itemNameTexts[currentSlot].text = $"Rock {i + 1}";
                 quantityTexts[currentSlot].text = playerController.collectedRocks[i].ToString();
@@ -154,10 +154,19 @@ public class HotBarManager : MonoBehaviour
         }
 
         // Update display for wood
-        if (currentSlot < numberOfSlots)
+        if (currentSlot < numberOfSlots && playerController.woodCount > 0)
         {
             itemNameTexts[currentSlot].text = "Wood";
             quantityTexts[currentSlot].text = playerController.woodCount.ToString();
+            UpdateSlotVisuals(currentSlot);
+            currentSlot++;
+        }
+
+        // Update display for wooden wall
+        if (currentSlot < numberOfSlots && playerController.woodWallCount > 0)
+        {
+            itemNameTexts[currentSlot].text = "Wooden Wall";
+            quantityTexts[currentSlot].text = playerController.woodWallCount.ToString();
             UpdateSlotVisuals(currentSlot);
             currentSlot++;
         }

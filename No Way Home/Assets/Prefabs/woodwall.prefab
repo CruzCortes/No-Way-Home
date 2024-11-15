@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 3137314970489390474}
   - component: {fileID: 24500258017749949}
   - component: {fileID: 4339957834746382320}
+  - component: {fileID: 32627005044620938}
   m_Layer: 0
   m_Name: woodwall
   m_TagString: Untagged
@@ -130,3 +131,16 @@ BoxCollider2D:
   serializedVersion: 2
   m_Size: {x: 0.18, y: 0.12}
   m_EdgeRadius: 0
+--- !u!114 &32627005044620938
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7057607228753986526}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d6644429a08fd4d7da17984834f00dca, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxHits: 3

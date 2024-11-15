@@ -40,6 +40,8 @@ public class PlayerController : MonoBehaviour
     public int[] collectedRocks = new int[2];  // Different rock types
     public int woodCount = 0;
     public int campfireCount = 0;
+    public int woodWallCount = 0;
+    public GameObject woodWallPrefab; // Assign in inspector
 
     [Header("Spear Settings")]
     public GameObject spearPrefab;
@@ -176,6 +178,13 @@ public class PlayerController : MonoBehaviour
             EatSelectedFood();
         }
 
+        // place wood wall
+        if (Input.GetMouseButtonDown(0) && currentSelectedItem == "Wooden Wall" && woodWallCount > 0)
+        {
+            PlaceWoodWall();
+        }
+
+
         if (movement != Vector2.zero)
         {
             lastMovementDirection = movement.normalized;
@@ -194,6 +203,45 @@ public class PlayerController : MonoBehaviour
         else
         {
             footprintTimer = footprintSpawnInterval;
+        }
+    }
+
+    private void PlaceWoodWall()
+    {
+        if (woodWallCount > 0 && woodWallPrefab != null)
+        {
+            // Get mouse position in world space
+            Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            mousePos.z = 0; // Ensure it's placed on the 2D plane
+
+            // Round the position to the nearest 0.5 units for grid-like placement
+            mousePos.x = Mathf.Round(mousePos.x * 2) / 2;
+            mousePos.y = Mathf.Round(mousePos.y * 2) / 2;
+
+            // Check if there's already a wall at this position
+            Collider2D[] colliders = Physics2D.OverlapCircleAll(mousePos, 0.25f);
+            bool canPlace = true;
+
+            foreach (Collider2D collider in colliders)
+            {
+                if (collider.CompareTag("WoodWall"))
+                {
+                    canPlace = false;
+                    break;
+                }
+            }
+
+            // Place the wall if the position is clear
+            if (canPlace)
+            {
+                GameObject wall = Instantiate(woodWallPrefab, mousePos, Quaternion.identity);
+                woodWallCount--;
+                Debug.Log($"Placed wooden wall. Remaining: {woodWallCount}");
+            }
+            else
+            {
+                Debug.Log("Cannot place wall here - space is occupied");
+            }
         }
     }
 
@@ -284,6 +332,13 @@ public class PlayerController : MonoBehaviour
     }
     #endregion
 
+    // wood wall thing
+    public void AddWoodWall()
+    {
+        woodWallCount++;
+        Debug.Log($"Added wooden wall to inventory. Total: {woodWallCount}");
+    }
+
     #region Inventory Management
     public void RemoveWood(int amount)
     {
@@ -318,6 +373,8 @@ public class PlayerController : MonoBehaviour
                 return collectedRocks[0];
             case "rock 2":
                 return collectedRocks[1];
+            case "wooden wall":
+                return woodWallCount;
             default:
                 return 0;
         }

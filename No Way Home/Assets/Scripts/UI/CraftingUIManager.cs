@@ -41,6 +41,9 @@ public class CraftingUIManager : MonoBehaviour
     private string selectedCraftableItem = null;
     private string currentCategory = "Structures";
 
+    // wood wall 
+    private const int WOODWALL_WOOD_COST = 4;
+
     private void Awake()
     {
         canvasGroup = craftingPanel.gameObject.AddComponent<CanvasGroup>();
@@ -206,12 +209,26 @@ public class CraftingUIManager : MonoBehaviour
 
         if (currentCategory == "Structures")
         {
+            // First button (Campfire) - Position at top
             var campfireButton = CreateCraftingItemButton("Campfire", "A warm fire to keep you cozy\nCost: 3 Wood");
+            var campfireRect = campfireButton.GetComponent<RectTransform>();
+            campfireRect.anchorMin = new Vector2(0.05f, 0.85f);
+            campfireRect.anchorMax = new Vector2(0.95f, 0.95f);
             campfireButton.onClick.AddListener(() => SelectCraftingItem("Campfire"));
+
+            // Second button (Wooden Wall) - Position below Campfire
+            var woodWallButton = CreateCraftingItemButton("Wooden Wall", "A sturdy wooden wall for protection\nCost: 4 Wood");
+            var woodWallRect = woodWallButton.GetComponent<RectTransform>();
+            woodWallRect.anchorMin = new Vector2(0.05f, 0.70f);
+            woodWallRect.anchorMax = new Vector2(0.95f, 0.80f);
+            woodWallButton.onClick.AddListener(() => SelectCraftingItem("Wooden Wall"));
         }
         else if (currentCategory == "Utilities")
         {
             var spearButton = CreateCraftingItemButton("Spear", "A throwing weapon\nCost: 1 Wood, 1 Rock Type 1");
+            var spearRect = spearButton.GetComponent<RectTransform>();
+            spearRect.anchorMin = new Vector2(0.05f, 0.85f);
+            spearRect.anchorMax = new Vector2(0.95f, 0.95f);
             spearButton.onClick.AddListener(() => SelectCraftingItem("Spear"));
         }
     }
@@ -366,6 +383,14 @@ public class CraftingUIManager : MonoBehaviour
             craftButton.interactable = canCraft;
             craftButton.GetComponent<Image>().color = canCraft ? buttonNormalColor : buttonDisabledColor;
         }
+        else if (selectedCraftableItem == "Wooden Wall")
+        {
+            bool canCraft = playerController.woodCount >= WOODWALL_WOOD_COST;
+            requirementsText.text = $"Requirements:\n\nWood: {playerController.woodCount}/{WOODWALL_WOOD_COST}\n\n" +
+                                  (canCraft ? "Ready to craft!" : "Not enough resources!");
+            craftButton.interactable = canCraft;
+            craftButton.GetComponent<Image>().color = canCraft ? buttonNormalColor : buttonDisabledColor;
+        }
         else if (selectedCraftableItem == "Spear")
         {
             bool hasWood = playerController.woodCount >= 1;
@@ -388,6 +413,13 @@ public class CraftingUIManager : MonoBehaviour
             playerController.AddCampfire();
             UpdateCraftingRequirements();
             Debug.Log("Crafted a campfire!");
+        }
+        else if (selectedCraftableItem == "Wooden Wall" && playerController.woodCount >= WOODWALL_WOOD_COST)
+        {
+            playerController.RemoveWood(WOODWALL_WOOD_COST);
+            playerController.AddWoodWall();
+            UpdateCraftingRequirements();
+            Debug.Log("Crafted a wooden wall!");
         }
         else if (selectedCraftableItem == "Spear" &&
                  playerController.woodCount >= 1 &&
