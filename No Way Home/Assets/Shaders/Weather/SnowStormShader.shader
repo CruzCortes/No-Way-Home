@@ -3,20 +3,21 @@ Shader "Custom/SnowStormShader"
     Properties
     {
         _MainTex ("Texture", 2D) = "white" {}
-        _NoiseTex ("Noise Texture", 2D) = "white" {}
-        _Intensity ("Intensity", Range(0, 1)) = 0.5
-        _Tiling ("Tiling", Float) = 1
+        _SnowTexture ("Snow Texture", 2D) = "white" {}
+        _NoiseMask ("Noise Mask", 2D) = "white" {}
+        _SnowIntensity ("Snow Intensity", Range(0, 1)) = 0.5
+        _Speed ("Speed", Float) = 1.0
+        _OffsetDirection ("Offset Direction", Vector) = (1, 1, 0, 0)
         _ScrollOffset ("Scroll Offset", Vector) = (0, 0, 0, 0)
     }
     
     SubShader
     {
-        Tags { "RenderType"="Transparent" "Queue"="Transparent" }
-        LOD 100
-        
-        ZWrite Off
-        Blend SrcAlpha OneMinusSrcAlpha
-        
+        // No culling or depth
+        Cull Off 
+        ZWrite Off 
+        ZTest Always
+
         Pass
         {
             CGPROGRAM
@@ -24,48 +25,58 @@ Shader "Custom/SnowStormShader"
             #pragma fragment frag
             
             #include "UnityCG.cginc"
-            
+
             struct appdata
             {
                 float4 vertex : POSITION;
                 float2 uv : TEXCOORD0;
             };
-            
+
             struct v2f
             {
                 float2 uv : TEXCOORD0;
-                float2 uvNoise : TEXCOORD1;
+                float2 snowUV : TEXCOORD1;
                 float4 vertex : SV_POSITION;
             };
-            
+
             sampler2D _MainTex;
-            sampler2D _NoiseTex;
-            float _Intensity;
-            float _Tiling;
-            float2 _ScrollOffset;
-            
+            sampler2D _SnowTexture;
+            sampler2D _NoiseMask;
+            float4 _MainTex_ST;
+            float _SnowIntensity;
+            float _Speed;
+            float4 _OffsetDirection;
+            float4 _ScrollOffset;
+
             v2f vert (appdata v)
             {
                 v2f o;
                 o.vertex = UnityObjectToClipPos(v.vertex);
-                o.uv = v.uv;
-                o.uvNoise = v.uv * _Tiling + _ScrollOffset;
+                o.uv = UnityStereoScreenSpaceUVAdjust(v.uv, _MainTex_ST);
+                
+                // Calculate snow movement
+                float2 windOffset = _OffsetDirection.xy * _Speed * _Time.y;
+                o.snowUV = v.uv + _ScrollOffset.xy + windOffset;
+                
                 return o;
             }
             
             fixed4 frag (v2f i) : SV_Target
             {
-                fixed4 mainCol = tex2D(_MainTex, i.uv);
+                fixed4 col = tex2D(_MainTex, i.uv);
                 
-                // Sample noise texture twice with different offsets for more variation
-                fixed snow1 = tex2D(_NoiseTex, i.uvNoise).r;
-                fixed snow2 = tex2D(_NoiseTex, i.uvNoise * 1.4 + float2(0.5, 0.5)).r;
+                // Sample snow with offset
+                fixed4 snow = tex2D(_SnowTexture, i.snowUV);
+                fixed4 noise = tex2D(_NoiseMask, i.snowUV * 0.5);
                 
-                float snowMask = (snow1 * 0.7 + snow2 * 0.3) * _Intensity;
+                // Calculate snow mask
+                float snowMask = snow.r * noise.r * _SnowIntensity;
                 
-                // Create final color
-                float3 snowColor = float3(1, 1, 1);
-                return lerp(mainCol, fixed4(snowColor, snowMask), snowMask * _Intensity);
+                // Simple blend without grab pass
+                fixed4 finalColor = col;
+                finalColor.rgb = lerp(col.rgb, fixed3(1,1,1), snowMask);
+                
+                return finalColor;
             }
             ENDCG
         }

@@ -3,9 +3,9 @@ Shader "Custom/SnowyGlacialShader"
     Properties
     {
         _MainTex ("Texture", 2D) = "white" {}
-        _SnowColor ("Snow Color", Color) = (0.9608, 0.9686, 0.9804, 1) // #f5f7fa
-        _IceColor ("Ice Color", Color) = (0.8549, 0.9020, 0.9686, 1) // #dae6f7
-        _ShadowColor ("Shadow Color", Color) = (0.282, 0.329, 0.580, 0.7) // #485494
+        _SnowColor ("Snow Color", Color) = (0.9608, 0.9686, 0.9804, 1)
+        _IceColor ("Ice Color", Color) = (0.8549, 0.9020, 0.9686, 1)
+        _ShadowColor ("Shadow Color", Color) = (0.282, 0.329, 0.580, 0.7)
         _NoiseScale ("Noise Scale", Float) = 5
         _Seed ("Seed", Float) = 0
         _ShadowDirection ("Shadow Direction", Vector) = (1, 1, 0, 0)
@@ -13,11 +13,16 @@ Shader "Custom/SnowyGlacialShader"
     }
     SubShader
     {
-        Tags {"Queue"="Transparent" "RenderType"="Transparent"}
+        Tags {"Queue"="Transparent+100" "RenderType"="Transparent"}
         LOD 100
+        
+        Blend SrcAlpha OneMinusSrcAlpha
+        ZWrite Off
+        ZTest LEqual
         
         CGPROGRAM
         #pragma surface surf Lambert alpha
+        #pragma target 3.0
         
         sampler2D _MainTex;
         fixed4 _SnowColor;
@@ -53,29 +58,24 @@ Shader "Custom/SnowyGlacialShader"
 
         void surf (Input IN, inout SurfaceOutput o)
         {
-            // Base snow/ice calculation
             fixed4 c = tex2D(_MainTex, IN.uv_MainTex);
             float2 noiseUV = IN.uv_MainTex * _NoiseScale + _Seed;
             float n = noise(noiseUV);
             n += 0.5 * noise(noiseUV * 2.0);
             n += 0.25 * noise(noiseUV * 4.0);
             n /= 1.75;
-            fixed3 baseColor = lerp(_IceColor.rgb, _SnowColor.rgb, n);
 
-            // Calculate moving shadow with proper direction
+            fixed3 baseColor = lerp(_IceColor.rgb, _SnowColor.rgb, n);
+            
             float2 shadowPos = IN.worldPos.xy * 0.5;
-            shadowPos += _ShadowDirection * _Seed; // Use _Seed for movement
+            shadowPos += _ShadowDirection * _Seed;
             float largeScaleNoise = noise(shadowPos * 0.2);
             float mediumScaleNoise = noise(shadowPos * 0.4 + _Seed);
             float smallScaleNoise = noise(shadowPos * 0.8 - _Seed * 0.5);
             
-            // Combine different noise scales for more natural looking shadows
             float shadowNoise = largeScaleNoise * 0.5 + mediumScaleNoise * 0.3 + smallScaleNoise * 0.2;
-            
-            // Apply shadow intensity with smooth falloff
             float shadowMask = smoothstep(0.3, 0.7, shadowNoise) * _ShadowIntensity;
             
-            // Only apply shadow if intensity is significant
             if (_ShadowIntensity > 0.05f)
             {
                 o.Albedo = lerp(baseColor, _ShadowColor.rgb, shadowMask * _ShadowColor.a);
@@ -89,5 +89,5 @@ Shader "Custom/SnowyGlacialShader"
         }
         ENDCG
     }
-    FallBack "Diffuse"
+    FallBack "Transparent/Diffuse"
 }

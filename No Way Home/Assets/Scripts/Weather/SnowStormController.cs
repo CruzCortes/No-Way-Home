@@ -3,127 +3,150 @@ using UnityEngine;
 [RequireComponent(typeof(Camera))]
 public class SnowStormController : MonoBehaviour
 {
-    [Header("Noise Settings")]
-    public int textureSize = 256;
-    public float noiseScale = 20f;
-    public int octaves = 4;
-    public float persistence = 0.5f;
-    public float lacunarity = 2f;
+    public enum SnowState
+    {
+        None,
+        LightSnow,
+        Blizzard
+    }
 
-    [Header("Snow Settings")]
+    [Header("Weather States")]
+    public SnowState currentState = SnowState.None;
+    public float stateCheckInterval = 10f;
+
+    [Header("Noise Settings")]
+    private int textureSize = 256;
+    private Texture2D snowNoiseTexture;
+    private Texture2D noiseGradient;
+
+    [Header("Snow Parameters")]
     [Range(0, 1)]
     public float snowIntensity = 0.5f;
-    public float horizontalSpeed = 1f;
-    public float verticalSpeed = 1f;
-    public float tiling = 1f;
+    public float scrollSpeed = 1f;
 
     private Material snowMaterial;
+    private float stateTimer;
     private Vector2 scrollOffset;
-    private Texture2D noiseTexture;
 
     void Start()
     {
-        // Generate noise texture
-        GenerateNoiseTexture();
+        // Generate noise textures
+        GenerateNoiseTextures();
 
         // Create material from shader
         Shader shader = Shader.Find("Custom/SnowStormShader");
         if (shader != null)
         {
             snowMaterial = new Material(shader);
-            snowMaterial.SetTexture("_NoiseTex", noiseTexture);
+            snowMaterial.SetTexture("_SnowTexture", snowNoiseTexture);
+            snowMaterial.SetTexture("_NoiseMask", noiseGradient);
         }
         else
         {
             Debug.LogError("SnowStormShader not found!");
         }
+
+        stateTimer = stateCheckInterval;
     }
 
-    void GenerateNoiseTexture()
+    void GenerateNoiseTextures()
     {
-        noiseTexture = new Texture2D(textureSize, textureSize);
-        noiseTexture.wrapMode = TextureWrapMode.Repeat;
+        // Generate main noise texture
+        snowNoiseTexture = new Texture2D(textureSize, textureSize);
+        snowNoiseTexture.wrapMode = TextureWrapMode.Repeat;
 
-        float[,] noiseMap = new float[textureSize, textureSize];
+        // Generate gradient noise texture
+        noiseGradient = new Texture2D(textureSize, textureSize);
+        noiseGradient.wrapMode = TextureWrapMode.Repeat;
 
-        // Generate multiple octaves of noise
         for (int y = 0; y < textureSize; y++)
         {
             for (int x = 0; x < textureSize; x++)
             {
-                float amplitude = 1;
-                float frequency = 1;
-                float noiseHeight = 0;
+                // Generate main noise (snow particles)
+                float xCoord = (float)x / textureSize * 20f;
+                float yCoord = (float)y / textureSize * 20f;
+                float sample = Mathf.PerlinNoise(xCoord, yCoord);
+                float sharpNoise = sample > 0.7f ? 1f : 0f; // Create distinct snow particles
+                snowNoiseTexture.SetPixel(x, y, new Color(sharpNoise, sharpNoise, sharpNoise, sharpNoise));
 
-                // Generate octaves
-                for (int i = 0; i < octaves; i++)
-                {
-                    float sampleX = x / noiseScale * frequency;
-                    float sampleY = y / noiseScale * frequency;
-
-                    // Generate snow-like pattern
-                    float perlinValue = Mathf.PerlinNoise(sampleX, sampleY);
-                    noiseHeight += perlinValue * amplitude;
-
-                    amplitude *= persistence;
-                    frequency *= lacunarity;
-                }
-
-                noiseMap[x, y] = noiseHeight;
+                // Generate gradient noise (for movement variation)
+                float gradientSample = Mathf.PerlinNoise(xCoord * 0.5f, yCoord * 0.5f);
+                noiseGradient.SetPixel(x, y, new Color(gradientSample, gradientSample, gradientSample, 1));
             }
         }
 
-        // Normalize and create snow-like pattern
-        Color[] colorMap = new Color[textureSize * textureSize];
-        for (int y = 0; y < textureSize; y++)
-        {
-            for (int x = 0; x < textureSize; x++)
-            {
-                float normalizedHeight = noiseMap[x, y];
-
-                // Create snow-like effect by thresholding
-                float snowValue = normalizedHeight > 0.7f ? 1f : 0f;
-
-                colorMap[y * textureSize + x] = new Color(snowValue, snowValue, snowValue, snowValue);
-            }
-        }
-
-        noiseTexture.SetPixels(colorMap);
-        noiseTexture.Apply();
+        snowNoiseTexture.Apply();
+        noiseGradient.Apply();
     }
 
     void Update()
     {
         if (WeatherSystem.Instance != null)
         {
+            float temp = WeatherSystem.Instance.GetCurrentTemperature();
             Vector2 windDir = WeatherSystem.Instance.GetCurrentWindDirection();
             float windSpeed = WeatherSystem.Instance.GetWindSpeed();
 
-            // Update scroll speed based on wind
-            horizontalSpeed = windDir.x * windSpeed;
-            verticalSpeed = windDir.y * windSpeed;
+            // Update state timer
+            stateTimer -= Time.deltaTime;
+            if (stateTimer <= 0f)
+            {
+                stateTimer = stateCheckInterval;
+
+                // Update weather state based on temperature
+                if (temp < 0f)
+                {
+                    currentState = Random.value < 0.5f ? SnowState.Blizzard : SnowState.LightSnow;
+                }
+                else
+                {
+                    currentState = SnowState.None;
+                }
+            }
+
+            // Update scroll offset based on wind
+            scrollOffset += new Vector2(
+                windDir.x * windSpeed * Time.deltaTime * scrollSpeed,
+                windDir.y * windSpeed * Time.deltaTime * scrollSpeed
+            );
+
+            UpdateShaderProperties(windDir, windSpeed);
         }
-
-        // Update scroll offset
-        scrollOffset.x += horizontalSpeed * Time.deltaTime;
-        scrollOffset.y += verticalSpeed * Time.deltaTime;
-
-        UpdateShaderProperties();
     }
 
-    void UpdateShaderProperties()
+    void UpdateShaderProperties(Vector2 windDir, float windSpeed)
     {
         if (snowMaterial != null)
         {
-            snowMaterial.SetFloat("_Intensity", snowIntensity);
-            snowMaterial.SetFloat("_Tiling", tiling);
+            float baseIntensity = 0f;
+            float baseSpeed = 1f;
+
+            switch (currentState)
+            {
+                case SnowState.None:
+                    baseIntensity = 0f;
+                    break;
+                case SnowState.LightSnow:
+                    baseIntensity = 0.3f;
+                    baseSpeed = 0.5f;
+                    break;
+                case SnowState.Blizzard:
+                    baseIntensity = 1f;
+                    baseSpeed = 2f;
+                    break;
+            }
+
+            snowMaterial.SetFloat("_SnowIntensity", baseIntensity * snowIntensity);
+            snowMaterial.SetFloat("_Speed", baseSpeed * windSpeed);
+            snowMaterial.SetVector("_OffsetDirection", new Vector4(windDir.x, windDir.y, 0, 0));
             snowMaterial.SetVector("_ScrollOffset", scrollOffset);
         }
     }
 
     void OnRenderImage(RenderTexture source, RenderTexture destination)
     {
-        if (snowMaterial != null)
+        if (snowMaterial != null && currentState != SnowState.None)
         {
             Graphics.Blit(source, destination, snowMaterial);
         }
@@ -135,14 +158,11 @@ public class SnowStormController : MonoBehaviour
 
     void OnDestroy()
     {
-        if (noiseTexture != null)
-        {
-            Destroy(noiseTexture);
-        }
-
+        if (snowNoiseTexture != null)
+            Destroy(snowNoiseTexture);
+        if (noiseGradient != null)
+            Destroy(noiseGradient);
         if (snowMaterial != null)
-        {
             Destroy(snowMaterial);
-        }
     }
 }
