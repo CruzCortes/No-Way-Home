@@ -2,58 +2,79 @@ using UnityEngine;
 
 public class CampfireHeat : MonoBehaviour
 {
-    [SerializeField] private float heatRadius = 5f;
-    [SerializeField] private bool showHeatRadius = true;
-    [SerializeField] private float maxHeatBonus = 20f;
+    [Header("Heat Settings")]
+    [SerializeField] private float maxHeatBonus = 30f;
+    [SerializeField] private float heatMultiplier = 5f; // Added multiplier for stronger effect
 
     private CircleCollider2D heatZone;
-    private PlayerStatsManager currentPlayer;
-    private float heatIntensity = 0f;
+    private PlayerStatsManager nearbyPlayer;
+    private float currentHeatAmount = 0f;
 
     private void Start()
     {
-        heatZone = gameObject.AddComponent<CircleCollider2D>();
-        heatZone.radius = heatRadius;
-        heatZone.isTrigger = true;
+        heatZone = GetComponent<CircleCollider2D>();
+        if (heatZone == null)
+        {
+            Debug.LogError("No CircleCollider2D found on campfire!");
+            return;
+        }
+
+        Debug.Log($"Campfire initialized with radius: {heatZone.radius}");
     }
 
-    private void OnTriggerStay2D(Collider2D other)
+    private void Update()
     {
-        PlayerStatsManager player = other.GetComponent<PlayerStatsManager>();
-        if (player != null)
+        if (nearbyPlayer != null)
         {
-            // Calculate distance-based heat intensity
-            float distance = Vector2.Distance(transform.position, other.transform.position);
-            float normalizedDistance = 1f - Mathf.Clamp01(distance / heatRadius);
+            // Calculate heat every frame while player is in range
+            float distance = Vector2.Distance(transform.position, nearbyPlayer.transform.position);
+            float normalizedDistance = 1f - Mathf.Clamp01(distance / heatZone.radius);
 
-            // Exponential falloff for more realistic heat distribution
-            heatIntensity = Mathf.Pow(normalizedDistance, 1.5f);
+            // Apply stronger heat effect with multiplier
+            currentHeatAmount = normalizedDistance * maxHeatBonus * heatMultiplier;
 
-            // Apply heat intensity to player
-            player.SetHeatSource(heatIntensity * maxHeatBonus);
+            // Apply heat effect
+            nearbyPlayer.SetHeatSource(currentHeatAmount);
+
+            Debug.Log($"Applying heat: {currentHeatAmount} at distance: {distance}");
         }
     }
 
-    private void OnTriggerExit2D(Collider2D other)
+    void OnTriggerEnter2D(Collider2D other)
     {
-        PlayerStatsManager player = other.GetComponent<PlayerStatsManager>();
-        if (player != null)
+        if (other.CompareTag("Player"))
         {
-            player.SetHeatSource(0f);
+            Debug.Log("Player entered heat zone");
+            nearbyPlayer = other.GetComponent<PlayerStatsManager>();
+            if (nearbyPlayer != null)
+            {
+                // Initial heat application
+                float distance = Vector2.Distance(transform.position, other.transform.position);
+                float normalizedDistance = 1f - Mathf.Clamp01(distance / heatZone.radius);
+                currentHeatAmount = normalizedDistance * maxHeatBonus * heatMultiplier;
+                nearbyPlayer.SetHeatSource(currentHeatAmount);
+            }
+        }
+    }
+
+    void OnTriggerExit2D(Collider2D other)
+    {
+        if (other.CompareTag("Player") && nearbyPlayer != null)
+        {
+            Debug.Log("Player exited heat zone");
+            nearbyPlayer.SetHeatSource(0f);
+            currentHeatAmount = 0f;
+            nearbyPlayer = null;
         }
     }
 
     private void OnDrawGizmos()
     {
-        if (showHeatRadius)
+        if (heatZone != null)
         {
-            // Outer radius
+            // Show heat radius in editor
             Gizmos.color = new Color(1f, 0.5f, 0f, 0.2f);
-            Gizmos.DrawWireSphere(transform.position, heatRadius);
-
-            // Inner effective radius
-            Gizmos.color = new Color(1f, 0.3f, 0f, 0.4f);
-            Gizmos.DrawWireSphere(transform.position, heatRadius * 0.5f);
+            Gizmos.DrawWireSphere(transform.position, heatZone.radius);
         }
     }
 }
