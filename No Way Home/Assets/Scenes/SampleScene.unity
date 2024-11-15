@@ -320,6 +320,7 @@ GameObject:
   - component: {fileID: 515166092}
   - component: {fileID: 515166091}
   - component: {fileID: 515166094}
+  - component: {fileID: 515166096}
   m_Layer: 0
   m_Name: fire1
   m_TagString: Untagged
@@ -427,12 +428,43 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: dfdcb6c9457ed46b58c4aaedf632924b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  heatRadius: 3.83
   maxHeatBonus: 30
-  showHeatRadius: 1
-  playerLayer:
+  heatMultiplier: 5
+--- !u!58 &515166096
+CircleCollider2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 515166090}
+  m_Enabled: 1
+  m_Density: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_ForceSendLayers:
     serializedVersion: 2
     m_Bits: 4294967295
+  m_ForceReceiveLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_ContactCaptureLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_CallbackLayers:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_IsTrigger: 1
+  m_UsedByEffector: 0
+  m_UsedByComposite: 0
+  m_Offset: {x: 0, y: 0}
+  serializedVersion: 2
+  m_Radius: 1.06
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0
@@ -446,6 +478,7 @@ GameObject:
   - component: {fileID: 519420029}
   - component: {fileID: 519420033}
   - component: {fileID: 519420034}
+  - component: {fileID: 519420035}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -559,6 +592,27 @@ MonoBehaviour:
   isPaused: 0
   timePhases: []
   transitionDuration: 1
+--- !u!114 &519420035
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 519420028}
+  m_Enabled: 0
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0dff4984b1974a3980b8a0176c41c4b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  textureSize: 256
+  noiseScale: 20
+  octaves: 4
+  persistence: 0.5
+  lacunarity: 2
+  snowIntensity: 0
+  horizontalSpeed: 1
+  verticalSpeed: 1
+  tiling: 1
 --- !u!1 &607558162
 GameObject:
   m_ObjectHideFlags: 0
