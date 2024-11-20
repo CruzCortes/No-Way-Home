@@ -13,6 +13,7 @@ public class WorldGenerator : MonoBehaviour
     public GameObject treeStumpPrefab;
     public GameObject treeTopPrefab;
     public GameObject woodPrefab;
+    public GameObject bunnyPrefab; 
 
     [Header("Generation Settings")]
     public int chunkSize = 16;
@@ -24,6 +25,8 @@ public class WorldGenerator : MonoBehaviour
     public float rockSpawnChance = 0.10f;
     [Range(0f, 1f)]
     public float treeSpawnChance = 0.05f;
+    [Range(0f, 1f)]
+    public float bunnySpawnChance = 0.02f;
 
     [Header("References")]
     public Camera mainCamera;
@@ -184,6 +187,9 @@ public class WorldGenerator : MonoBehaviour
         GameObject treesContainer = new GameObject("TreesContainer");
         treesContainer.transform.parent = chunkObject.transform;
 
+        GameObject bunniesContainer = new GameObject("BunniesContainer"); // New container for bunnies
+        bunniesContainer.transform.parent = chunkObject.transform;
+
         for (int y = 0; y < chunkSize; y++)
         {
             for (int x = 0; x < chunkSize; x++)
@@ -211,8 +217,14 @@ public class WorldGenerator : MonoBehaviour
 
                 worldPosition.z = DECORATION_HEIGHT_OFFSET;  // Set decoration height
 
-                // First check for tree spawn to avoid overlap
-                if (Random.value < treeSpawnChance)
+                // First check for bunny spawn to avoid overlap
+                if (bunnyPrefab != null && Random.value < bunnySpawnChance)
+                {
+                    GameObject bunny = Instantiate(bunnyPrefab, worldPosition, Quaternion.identity, bunniesContainer.transform);
+                    bunny.name = $"Bunny_{tilePosition.x}_{tilePosition.y}";
+                }
+                // Then check for tree spawn
+                else if (Random.value < treeSpawnChance)
                 {
                     GameObject treeTemplate = CreateTreePrefab();
                     GameObject tree = Instantiate(treeTemplate, worldPosition, Quaternion.identity, treesContainer.transform);

@@ -301,11 +301,13 @@ MonoBehaviour:
   treeStumpPrefab: {fileID: 3609978208163730650, guid: 5d3ac8f885bb1465b8ce5e2851373522, type: 3}
   treeTopPrefab: {fileID: 251260468785459163, guid: 5d335cc6ae0644095aee619e1810c541, type: 3}
   woodPrefab: {fileID: 3255002914993434176, guid: 938690c628e4c408abecbb35a95f7760, type: 3}
+  bunnyPrefab: {fileID: 1226194832006371002, guid: 083047250f705453d96132f3103609f9, type: 3}
   chunkSize: 16
   tileSize: 1
   chunkLoadRadius: 2
   rockSpawnChance: 0.05
   treeSpawnChance: 0.019
+  bunnySpawnChance: 0.002
   mainCamera: {fileID: 519420031}
   worldContainer: {fileID: 505957576}
 --- !u!1 &515166090
@@ -605,7 +607,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   currentState: 1
-  stateCheckInterval: 100
+  stateCheckInterval: 600
   snowIntensity: 1
   scrollSpeed: 1
 --- !u!1 &607558162
