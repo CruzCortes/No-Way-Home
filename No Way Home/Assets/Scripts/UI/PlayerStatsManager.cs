@@ -1,6 +1,8 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using System.Collections;
+using System.Collections.Generic;
 
 public class PlayerStatsManager : MonoBehaviour
 {
@@ -257,20 +259,85 @@ public class PlayerStatsManager : MonoBehaviour
     {
         isDead = true;
 
-        // Disable player movement
-        PlayerController playerController = GetComponent<PlayerController>();
-        if (playerController != null)
+        // Get the Player GameObject (since we know it has the "Player" tag)
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        if (player != null)
         {
-            playerController.enabled = false;
-            Rigidbody2D rb = playerController.GetComponent<Rigidbody2D>();
+            // Disable components and fade out player
+            PlayerController playerController = player.GetComponent<PlayerController>();
+            if (playerController != null)
+                playerController.enabled = false;
+
+            Rigidbody2D rb = player.GetComponent<Rigidbody2D>();
             if (rb != null)
             {
                 rb.velocity = Vector2.zero;
+                rb.simulated = false;
+            }
+
+            // Fade out and disable the player sprite
+            SpriteRenderer spriteRenderer = player.GetComponent<SpriteRenderer>();
+            if (spriteRenderer != null)
+            {
+                StartCoroutine(FadeOutAndDisable(player, spriteRenderer));
+            }
+            else
+            {
+                player.SetActive(false);
             }
         }
 
         // Show death screen
         DeathScreenManager.Instance.ShowDeathScreen();
+    }
+
+    private IEnumerator FadeOutAndDisable(GameObject player, SpriteRenderer spriteRenderer)
+    {
+        float fadeTime = 1f;
+        float elapsedTime = 0;
+        Color startColor = spriteRenderer.color;
+
+        while (elapsedTime < fadeTime)
+        {
+            elapsedTime += Time.deltaTime;
+            float alpha = Mathf.Lerp(1f, 0f, elapsedTime / fadeTime);
+            spriteRenderer.color = new Color(startColor.r, startColor.g, startColor.b, alpha);
+            yield return null;
+        }
+
+        // Disable the entire player GameObject
+        player.SetActive(false);
+    }
+
+    public void ResetPlayer()
+    {
+        // Reset all stats
+        isDead = false;
+        currentHealth = maxHealth;
+        currentHunger = maxHunger;
+        currentTemperature = optimalTemperature;
+        currentHeatFromSource = 0f;
+        temperatureExposureTime = 0f;
+
+        // Update UI
+        UpdateUI();
+
+        // Reset player's components
+        PlayerController playerController = GetComponent<PlayerController>();
+        if (playerController != null)
+        {
+            playerController.enabled = true;
+            playerController.moveSpeed = baseMovementSpeed; // Reset movement speed
+        }
+
+        // Make sure rigidbody is properly reset
+        Rigidbody2D rb = GetComponent<Rigidbody2D>();
+        if (rb != null)
+        {
+            rb.velocity = Vector2.zero;
+            rb.isKinematic = false;
+            rb.simulated = true;
+        }
     }
 
     private void UpdateTemperature()
