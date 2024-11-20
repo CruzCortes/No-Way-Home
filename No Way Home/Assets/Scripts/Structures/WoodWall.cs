@@ -7,15 +7,42 @@ public class WoodWall : MonoBehaviour
     private bool playerInRange = false;
     private float interactionRange = 2f;
 
+    private BoxCollider2D wallCollider;
+    private BoxCollider2D interactionCollider;
+    private SpriteRenderer spriteRenderer;
+
     private void Start()
     {
-        // Ensure the wall has the correct tag
         gameObject.tag = "WoodWall";
+        spriteRenderer = GetComponent<SpriteRenderer>();
+
+        // Setup main collision collider
+        wallCollider = GetComponent<BoxCollider2D>();
+        if (wallCollider == null)
+        {
+            wallCollider = gameObject.AddComponent<BoxCollider2D>();
+        }
+        wallCollider.isTrigger = false;
+
+        // Setup interaction trigger collider
+        interactionCollider = gameObject.AddComponent<BoxCollider2D>();
+        interactionCollider.isTrigger = true;
+
+        // Set up collider sizes
+        if (spriteRenderer != null)
+        {
+            Vector2 wallSize = spriteRenderer.sprite.bounds.size;
+
+            // Main collider setup (for the actual wall)
+            wallCollider.size = wallSize * 0.9f; // Slightly smaller than sprite
+
+            // Interaction collider setup (wider area around the wall)
+            interactionCollider.size = new Vector2(wallSize.x * 1.5f, wallSize.y * 1.5f);
+        }
     }
 
     private void Update()
     {
-        // Check if player is in range and presses E
         if (playerInRange && Input.GetKeyDown(KeyCode.E))
         {
             TakeHit();
@@ -24,16 +51,20 @@ public class WoodWall : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        if (other.CompareTag("Player"))
+        // Only respond to trigger events from the interaction collider
+        if (other.CompareTag("Player") && other.GetComponent<Collider2D>() != wallCollider)
         {
+            Debug.Log("Player entered wall interaction zone");
             playerInRange = true;
         }
     }
 
     private void OnTriggerExit2D(Collider2D other)
     {
-        if (other.CompareTag("Player"))
+        // Only respond to trigger events from the interaction collider
+        if (other.CompareTag("Player") && other.GetComponent<Collider2D>() != wallCollider)
         {
+            Debug.Log("Player exited wall interaction zone");
             playerInRange = false;
         }
     }
@@ -41,23 +72,18 @@ public class WoodWall : MonoBehaviour
     private void TakeHit()
     {
         currentHits++;
+        Debug.Log($"Wall hit! Hits: {currentHits}/{maxHits}");
 
-        // Visual feedback (optional)
         StartCoroutine(FlashRed());
 
         if (currentHits >= maxHits)
         {
             DestroyWall();
         }
-        else
-        {
-            Debug.Log($"Wall hit {currentHits}/{maxHits} times");
-        }
     }
 
     private System.Collections.IEnumerator FlashRed()
     {
-        SpriteRenderer spriteRenderer = GetComponent<SpriteRenderer>();
         if (spriteRenderer != null)
         {
             Color originalColor = spriteRenderer.color;
@@ -70,7 +96,6 @@ public class WoodWall : MonoBehaviour
     private void DestroyWall()
     {
         Debug.Log("Wall destroyed!");
-        // Optionally add particles or sound effects here
         Destroy(gameObject);
     }
 
@@ -78,6 +103,10 @@ public class WoodWall : MonoBehaviour
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, interactionRange);
+        if (spriteRenderer != null)
+        {
+            Vector2 size = spriteRenderer.sprite.bounds.size;
+            Gizmos.DrawWireCube(transform.position, new Vector3(size.x * 1.5f, size.y * 1.5f, 0));
+        }
     }
 }

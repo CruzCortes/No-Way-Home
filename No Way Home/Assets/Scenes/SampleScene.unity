@@ -604,9 +604,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c0dff4984b1974a3980b8a0176c41c4b, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  currentState: 0
+  currentState: 1
   stateCheckInterval: 100
-  snowIntensity: 0
+  snowIntensity: 1
   scrollSpeed: 1
 --- !u!1 &607558162
 GameObject:
