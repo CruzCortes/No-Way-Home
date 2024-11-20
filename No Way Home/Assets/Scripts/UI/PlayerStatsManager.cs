@@ -246,12 +246,31 @@ public class PlayerStatsManager : MonoBehaviour
 
         if (currentHealth <= 0 && !isDead)
         {
-            isDead = true;
-            Debug.Log("Player has died!");
+            HandlePlayerDeath();
         }
 
         UpdateUI();
         UpdatePlayerSpeed();
+    }
+
+    private void HandlePlayerDeath()
+    {
+        isDead = true;
+
+        // Disable player movement
+        PlayerController playerController = GetComponent<PlayerController>();
+        if (playerController != null)
+        {
+            playerController.enabled = false;
+            Rigidbody2D rb = playerController.GetComponent<Rigidbody2D>();
+            if (rb != null)
+            {
+                rb.velocity = Vector2.zero;
+            }
+        }
+
+        // Show death screen
+        DeathScreenManager.Instance.ShowDeathScreen();
     }
 
     private void UpdateTemperature()
