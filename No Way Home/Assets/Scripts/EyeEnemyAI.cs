@@ -20,9 +20,15 @@ public class EyeEnemyAI : MonoBehaviour
     public float chargeSpeed = 6f;
     public float chargeCooldown = 3f;
     public float chargeDistance = 3f;
-    public int damage = 1;
     public float knockbackForce = 5f;
     public float attackProbability = 0.05f;
+
+    [Header("Damage Settings")]
+    public float minDamage = 5f;
+    public float maxDamage = 20f;
+    private float damageInterval = 0.5f;
+    private float lastDamageTime;
+    private PlayerStatsManager playerStats;
 
     [Header("Flight Pattern Settings")]
     public float oscillationSpeed = 1f;
@@ -46,18 +52,66 @@ public class EyeEnemyAI : MonoBehaviour
 
     private void Start()
     {
-        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-        if (playerObj != null)
-        {
-            player = playerObj.transform;
-        }
-
+        FindAndSetupPlayer();
         startPosition = transform.position;
         targetPosition = GetRandomWanderPoint();
         rotationMatrix = Matrix4x4.identity;
         currentVelocity = Vector3.zero;
         originalScale = transform.localScale;
         wanderChangeTimer = 0f;
+        lastDamageTime = 0f;
+    }
+
+    private void FindAndSetupPlayer()
+    {
+        // First, find ALL objects with Player tag
+        GameObject[] playerObjects = GameObject.FindGameObjectsWithTag("Player");
+        Debug.Log($"Found {playerObjects.Length} objects with Player tag");
+
+        foreach (GameObject playerObj in playerObjects)
+        {
+            Debug.Log($"Checking object: {playerObj.name}");
+
+            // Try to get PlayerStatsManager from this object
+            playerStats = playerObj.GetComponent<PlayerStatsManager>();
+
+            if (playerStats == null)
+            {
+                // If not found, search the entire scene
+                playerStats = GameObject.FindObjectOfType<PlayerStatsManager>();
+            }
+
+            if (playerStats != null)
+            {
+                player = playerObj.transform;
+                Debug.Log("Successfully found PlayerStatsManager!");
+                return;
+            }
+        }
+
+        Debug.LogError("PlayerStatsManager not found in any Player object or scene!");
+        // Log all components on the Player object to help debug
+        if (playerObjects.Length > 0)
+        {
+            Component[] components = playerObjects[0].GetComponents<Component>();
+            Debug.Log("Components on Player object:");
+            foreach (Component comp in components)
+            {
+                Debug.Log($"- {comp.GetType().Name}");
+            }
+        }
+    }
+
+    private string GetGameObjectPath(GameObject obj)
+    {
+        string path = obj.name;
+        Transform parent = obj.transform.parent;
+        while (parent != null)
+        {
+            path = parent.name + "/" + path;
+            parent = parent.parent;
+        }
+        return path;
     }
 
     private void Update()
@@ -96,12 +150,7 @@ public class EyeEnemyAI : MonoBehaviour
         }
         else
         {
-            // If player reference is lost, try to find it again
-            GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-            if (playerObj != null)
-            {
-                player = playerObj.transform;
-            }
+            FindAndSetupPlayer();
             WanderWithMatrixTransform();
         }
     }
@@ -113,7 +162,6 @@ public class EyeEnemyAI : MonoBehaviour
         Vector3 directionToPlayer = (player.position - transform.position).normalized;
         Vector3 desiredVelocity = directionToPlayer * flyingSpeed;
 
-        // More gentle velocity change
         currentVelocity = Vector3.Lerp(currentVelocity, desiredVelocity, Time.deltaTime * 2f);
 
         float targetAngle = Mathf.Atan2(directionToPlayer.y, directionToPlayer.x) * Mathf.Rad2Deg;
@@ -123,14 +171,12 @@ public class EyeEnemyAI : MonoBehaviour
 
         rotationMatrix = Matrix4x4.Rotate(Quaternion.Euler(0, 0, currentRotation));
 
-        // Gentler oscillation
         Vector3 oscillation = new Vector3(
             0,
             Mathf.Sin(flightTime * oscillationSpeed) * oscillationAmplitude,
             0
         );
 
-        // Minimal spiral for stability
         Vector3 spiralOffset = new Vector3(
             Mathf.Cos(flightTime * spiralSpeed) * spiralRadius * 0.3f,
             Mathf.Sin(flightTime * spiralSpeed) * spiralRadius * 0.3f,
@@ -141,7 +187,6 @@ public class EyeEnemyAI : MonoBehaviour
         finalPosition += rotationMatrix.MultiplyPoint3x4(oscillation) * 0.3f;
         finalPosition += rotationMatrix.MultiplyPoint3x4(spiralOffset) * 0.2f;
 
-        // Ensure we don't move too far
         if (Vector2.Distance(finalPosition, startPosition) <= maxDistanceFromStart)
         {
             transform.position = finalPosition;
@@ -160,12 +205,10 @@ public class EyeEnemyAI : MonoBehaviour
         }
 
         Vector3 directionToTarget = (targetPosition - transform.position).normalized;
-        Vector3 desiredVelocity = directionToTarget * (flyingSpeed * 0.3f); // Very slow wandering
+        Vector3 desiredVelocity = directionToTarget * (flyingSpeed * 0.3f);
 
-        // Extremely smooth velocity change
         currentVelocity = Vector3.Lerp(currentVelocity, desiredVelocity, Time.deltaTime * 1f);
 
-        // Gentle soaring motion
         Vector3 soarOffset = new Vector3(
             0,
             Mathf.Sin(flightTime * soarFrequency) * soarAmplitude,
@@ -182,7 +225,6 @@ public class EyeEnemyAI : MonoBehaviour
         Vector3 finalPosition = transform.position + (currentVelocity * Time.deltaTime);
         finalPosition += rotationMatrix.MultiplyPoint3x4(soarOffset) * 0.5f;
 
-        // Check distance from start position
         if (Vector2.Distance(finalPosition, startPosition) <= maxDistanceFromStart)
         {
             transform.position = finalPosition;
@@ -196,7 +238,6 @@ public class EyeEnemyAI : MonoBehaviour
         Vector2 randomPoint = Random.insideUnitCircle * wanderRadius;
         Vector3 newTarget = startPosition + new Vector3(randomPoint.x, randomPoint.y, 0);
 
-        // Ensure wander point isn't too far from start
         if (Vector2.Distance(newTarget, startPosition) > maxDistanceFromStart)
         {
             Vector2 directionToTarget = ((Vector2)newTarget - (Vector2)startPosition).normalized;
@@ -217,7 +258,6 @@ public class EyeEnemyAI : MonoBehaviour
         {
             chargeDirection = (player.position - transform.position).normalized;
             Vector3 chargeStart = transform.position;
-            // Limit charge end position to max distance
             Vector3 chargeEnd = chargeStart + chargeDirection * Mathf.Min(chargeDistance, maxDistanceFromStart * 0.5f);
 
             // Wind-up
@@ -250,7 +290,7 @@ public class EyeEnemyAI : MonoBehaviour
             }
         }
 
-        // Reset all transformations
+        // Reset
         transform.localScale = originalScale;
         transform.rotation = originalRotation;
         isCharging = false;
@@ -267,13 +307,66 @@ public class EyeEnemyAI : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        if (isCharging && other.CompareTag("Player"))
+        Debug.Log($"Trigger Enter with: {other.gameObject.name}");
+
+        if (other.CompareTag("Player"))
         {
-            Rigidbody2D playerRb = other.GetComponent<Rigidbody2D>();
+            Debug.Log("Player tag detected!");
+            // Try one more time to find PlayerStatsManager directly on the colliding object
+            playerStats = other.gameObject.GetComponent<PlayerStatsManager>();
+
+            if (playerStats == null)
+            {
+                Debug.Log("Searching for PlayerStatsManager in parent...");
+                playerStats = other.gameObject.GetComponentInParent<PlayerStatsManager>();
+            }
+
+            if (playerStats == null)
+            {
+                Debug.Log("Searching for PlayerStatsManager in entire scene...");
+                playerStats = GameObject.FindObjectOfType<PlayerStatsManager>();
+            }
+
+            if (playerStats != null && isCharging)
+            {
+                Debug.Log("Found PlayerStatsManager, attempting to deal damage...");
+                DealDamageToPlayer();
+            }
+
+            // Apply knockback
+            Rigidbody2D playerRb = other.attachedRigidbody;
             if (playerRb != null)
             {
                 playerRb.AddForce(chargeDirection * knockbackForce, ForceMode2D.Impulse);
             }
+        }
+    }
+
+    private void OnTriggerStay2D(Collider2D other)
+    {
+        if (other.CompareTag("Player") && isCharging)
+        {
+            float currentTime = Time.time;
+            if (currentTime - lastDamageTime >= damageInterval)
+            {
+                DealDamageToPlayer();
+            }
+        }
+    }
+
+    private void DealDamageToPlayer()
+    {
+        if (playerStats != null)
+        {
+            float damage = Random.Range(minDamage, maxDamage);
+            Debug.Log($"Dealing {damage} damage to player");
+            playerStats.TakeDamage(damage);
+            lastDamageTime = Time.time;
+            Debug.Log("Damage dealt successfully!");
+        }
+        else
+        {
+            Debug.LogError("Cannot deal damage - PlayerStatsManager is null!");
         }
     }
 
