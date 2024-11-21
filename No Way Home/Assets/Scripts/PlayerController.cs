@@ -51,6 +51,11 @@ public class PlayerController : MonoBehaviour
     private const int SPEAR_ROCK_COST = 1;
     [SerializeField] private Vector3 spearOffset = new Vector3(0, 0.17f, 0);
 
+    [Header("Campfire Settings")]
+    public GameObject campfirePrefab; // Reference to the campfire prefab
+    [SerializeField] private float placementRadius = 2f; // How far from player campfire can be placed
+    [SerializeField] private LayerMask placementObstacleLayers; // Layers to check for placement obstacles
+
     private HotBarManager hotBarManager;
     private string currentSelectedItem;
 
@@ -184,6 +189,11 @@ public class PlayerController : MonoBehaviour
             PlaceWoodWall();
         }
 
+        // Place campfire
+        if (Input.GetMouseButtonDown(0) && currentSelectedItem == "Campfire" && campfireCount > 0)
+        {
+            PlaceCampfire();
+        }
 
         if (movement != Vector2.zero)
         {
@@ -203,6 +213,39 @@ public class PlayerController : MonoBehaviour
         else
         {
             footprintTimer = footprintSpawnInterval;
+        }
+    }
+
+    private void PlaceCampfire()
+    {
+        if (campfireCount > 0 && campfirePrefab != null)
+        {
+            // Get mouse position in world space
+            Vector3 mousePos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+            mousePos.z = 0; // Ensure it's placed on the 2D plane
+
+            // Check if there's already something at this position
+            Collider2D[] colliders = Physics2D.OverlapCircleAll(mousePos, 0.25f);
+            bool canPlace = true;
+
+            foreach (Collider2D collider in colliders)
+            {
+                // Only check for overlap with other campfires
+                if (collider.CompareTag("Campfire"))
+                {
+                    canPlace = false;
+                    Debug.Log("Cannot place campfire here - another campfire is too close");
+                    break;
+                }
+            }
+
+            // Place the campfire if the position is clear
+            if (canPlace)
+            {
+                GameObject campfire = Instantiate(campfirePrefab, mousePos, Quaternion.identity);
+                campfireCount--;
+                Debug.Log($"Placed campfire. Remaining: {campfireCount}");
+            }
         }
     }
 

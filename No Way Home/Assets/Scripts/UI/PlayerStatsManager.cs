@@ -358,38 +358,35 @@ public class PlayerStatsManager : MonoBehaviour
         }
         previousEnvironmentTemp = envTemp;
 
-        // Calculate temperature change with proper use of all variables
-        float exposureFactor = Mathf.Clamp01(temperatureExposureTime / 60f);
-
-        // Body's natural regulation toward optimal temperature (stronger when far from optimal)
+        // Body's natural regulation toward optimal temperature
         float tempDifferenceFromOptimal = optimalTemperature - currentTemperature;
         float bodyRegulation = tempDifferenceFromOptimal * bodyTemperatureInertia * Time.deltaTime;
 
-        // Environmental effect uses resistance and exposure
+        // Environmental effect
         float environmentalDifference = envTemp - currentTemperature;
         float environmentalEffect = environmentalDifference *
                                   environmentalTemperatureEffect *
                                   (1f - environmentalResistance) *
-                                  exposureFactor *
+                                  Mathf.Clamp01(temperatureExposureTime / 60f) *
                                   Time.deltaTime;
 
-        // Wind chill effect (stronger in cold)
+        // Wind chill effect
         float windChill = 0f;
         if (currentTemperature < optimalTemperature - 10f)
         {
             float coldnessFactor = (optimalTemperature - currentTemperature) / optimalTemperature;
-            windChill = windSpeed * 0.2f * coldnessFactor * exposureFactor * Time.deltaTime;
+            windChill = windSpeed * 0.2f * coldnessFactor * Mathf.Clamp01(temperatureExposureTime / 60f) * Time.deltaTime;
         }
 
-        // Heat source (campfire) effect (stronger when cold)
+        // Heat source effect
         float heatEffect = 0f;
         if (currentHeatFromSource > 0)
         {
-            float coldnessFactor = 1f + Mathf.Max(0, (optimalTemperature - currentTemperature) / optimalTemperature);
+            float coldnessFactor = 1f + Mathf.Abs(optimalTemperature - currentTemperature) / optimalTemperature;
             heatEffect = currentHeatFromSource * coldnessFactor * Time.deltaTime;
         }
 
-        // Natural temperature decay (slower when near optimal temperature)
+        // Natural temperature decay
         float tempDifference = Mathf.Abs(optimalTemperature - currentTemperature);
         float decayFactor = tempDifference / optimalTemperature;
         float decay = temperatureDecayRate * decayFactor * Time.deltaTime;
@@ -397,15 +394,23 @@ public class PlayerStatsManager : MonoBehaviour
         // Calculate final temperature change
         float tempChange = bodyRegulation + environmentalEffect + heatEffect - windChill - decay;
 
-        // Apply change very gradually
+        // Apply change (increase the maximum change per frame)
         currentTemperature = Mathf.MoveTowards(
             currentTemperature,
             currentTemperature + tempChange,
-            Time.deltaTime * 3f // Slower rate for more gradual changes
+            Time.deltaTime * 10f // Increased from 3f to 10f
         );
 
         // Clamp to valid range
         currentTemperature = Mathf.Clamp(currentTemperature, 0f, maxTemperature);
+
+        // Debug.Log($"Temperature updated: {currentTemperature}, HeatEffect: {heatEffect}, TempChange: {tempChange}");
+    }
+
+    public void SetHeatSource(float heatAmount)
+    {
+        // Debug.Log($"SetHeatSource called with heatAmount: {heatAmount}");
+        currentHeatFromSource = heatAmount;
     }
 
     private void UpdatePlayerSpeed()
@@ -457,8 +462,4 @@ public class PlayerStatsManager : MonoBehaviour
         UpdateUI();
     }
 
-    public void SetHeatSource(float heatAmount)
-    {
-        currentHeatFromSource = heatAmount;
-    }
 }
