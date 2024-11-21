@@ -1,6 +1,5 @@
 using UnityEngine;
 using System.Collections;
-using System.Collections.Generic;
 
 public class Tree : MonoBehaviour
 {
@@ -25,10 +24,18 @@ public class Tree : MonoBehaviour
     private bool isFalling = false;
     private PlayerController nearbyPlayer = null;
 
-    public void Initialize()
+    public void Initialize(bool generateTop = true)
     {
         if (stump != null) stump.sortingOrder = 0;
-        if (top != null) top.sortingOrder = 3; // was 2
+
+        if (generateTop)
+        {
+            // Instantiate the top
+            GameObject topObject = Instantiate(WorldGenerator.Instance.treeTopPrefab, Vector3.zero, Quaternion.identity, transform);
+            topObject.transform.localPosition = Vector3.zero;
+            top = topObject.GetComponent<SpriteRenderer>();
+            top.sortingOrder = 3; // was 2
+        }
 
         // Setup main collision collider
         if (treeCollider == null)
@@ -83,7 +90,7 @@ public class Tree : MonoBehaviour
     {
         if (isFalling || isBeingCut) return;
 
-        if (nearbyPlayer != null)
+        if (nearbyPlayer != null && top != null)
         {
             if (Input.GetKeyDown(KeyCode.E))
             {
@@ -95,7 +102,7 @@ public class Tree : MonoBehaviour
 
     void HitTree()
     {
-        if (isBeingCut || isFalling) return;
+        if (isBeingCut || isFalling || top == null) return; // Can't cut a tree without a top
 
         currentHealth--;
         isBeingCut = true;
@@ -108,11 +115,19 @@ public class Tree : MonoBehaviour
             Debug.Log("Tree is falling!");
             StartCoroutine(WiggleAndFall());
         }
+        else
+        {
+            isBeingCut = false; // Ensure we reset this flag if the tree isn't falling yet
+        }
     }
 
     IEnumerator ShakeTree()
     {
-        if (top == null) yield break;
+        if (top == null)
+        {
+            isBeingCut = false;
+            yield break;
+        }
 
         Vector3 originalPosition = top.transform.localPosition;
         float shakeAmount = 0.1f;
@@ -128,12 +143,15 @@ public class Tree : MonoBehaviour
         }
 
         top.transform.localPosition = originalPosition;
-        isBeingCut = false;
     }
 
     IEnumerator WiggleAndFall()
     {
-        if (top == null) yield break;
+        if (top == null)
+        {
+            isFalling = false;
+            yield break;
+        }
 
         isFalling = true;
         float elapsed = 0f;
@@ -227,14 +245,20 @@ public class Tree : MonoBehaviour
 
         yield return new WaitForSeconds(0.2f);
         ScatterWood();
+
+        // Record that the tree has been chopped down
+        WorldGenerator.Instance.RecordTreeChoppedDown(transform.position);
+
         Destroy(top.gameObject);
+        top = null; // Ensure top is set to null
+        isFalling = false;
     }
 
     void ScatterWood()
     {
         if (WorldGenerator.Instance != null && WorldGenerator.Instance.woodPrefab != null)
         {
-            Vector2 fallPosition = top.transform.position;
+            Vector2 fallPosition = top != null ? (Vector2)top.transform.position : (Vector2)transform.position;
 
             for (int i = 0; i < woodDropCount; i++)
             {

@@ -13,7 +13,7 @@ public class WorldGenerator : MonoBehaviour
     public GameObject treeStumpPrefab;
     public GameObject treeTopPrefab;
     public GameObject woodPrefab;
-    public GameObject bunnyPrefab; 
+    public GameObject bunnyPrefab;
 
     [Header("Generation Settings")]
     public int chunkSize = 16;
@@ -36,6 +36,9 @@ public class WorldGenerator : MonoBehaviour
     private Dictionary<Vector2Int, GameObject> generatedChunks = new Dictionary<Vector2Int, GameObject>();
     private GameObject player;
     private const float DECORATION_HEIGHT_OFFSET = 0.1f;
+
+    // Stores modifications for each chunk
+    private Dictionary<Vector2Int, ChunkData> chunkModificationData = new Dictionary<Vector2Int, ChunkData>();
 
     void Awake()
     {
@@ -187,8 +190,11 @@ public class WorldGenerator : MonoBehaviour
         GameObject treesContainer = new GameObject("TreesContainer");
         treesContainer.transform.parent = chunkObject.transform;
 
-        GameObject bunniesContainer = new GameObject("BunniesContainer"); // New container for bunnies
+        GameObject bunniesContainer = new GameObject("BunniesContainer");
         bunniesContainer.transform.parent = chunkObject.transform;
+
+        // Retrieve any modifications for this chunk
+        chunkModificationData.TryGetValue(chunkPosition, out ChunkData chunkData);
 
         for (int y = 0; y < chunkSize; y++)
         {
@@ -202,7 +208,6 @@ public class WorldGenerator : MonoBehaviour
                 Vector3 worldPosition = new Vector3(tilePosition.x * tileSize, tilePosition.y * tileSize, 0);
                 GameObject tile = Instantiate(groundPrefab, worldPosition, Quaternion.identity, chunkObject.transform);
                 tile.name = $"GroundTile_{tilePosition.x}_{tilePosition.y}";
-                // The tag is already set in the prefab as "GroundTile"
 
                 // Use the same seed for consistent generation
                 long seed = tilePosition.x + tilePosition.y * 10000L;
@@ -217,6 +222,10 @@ public class WorldGenerator : MonoBehaviour
 
                 worldPosition.z = DECORATION_HEIGHT_OFFSET;  // Set decoration height
 
+                // Check for modifications before generating decorations
+                bool isTreeChoppedDown = chunkData != null && chunkData.choppedDownTrees.Contains(tilePosition);
+                bool isRockDestroyed = chunkData != null && chunkData.destroyedRocks.Contains(tilePosition);
+
                 // First check for bunny spawn to avoid overlap
                 if (bunnyPrefab != null && Random.value < bunnySpawnChance)
                 {
@@ -226,15 +235,17 @@ public class WorldGenerator : MonoBehaviour
                 // Then check for tree spawn
                 else if (Random.value < treeSpawnChance)
                 {
+                    bool generateTop = !isTreeChoppedDown;
+
                     GameObject treeTemplate = CreateTreePrefab();
                     GameObject tree = Instantiate(treeTemplate, worldPosition, Quaternion.identity, treesContainer.transform);
                     tree.name = $"Tree_{tilePosition.x}_{tilePosition.y}";
                     Tree treeComponent = tree.GetComponent<Tree>();
-                    treeComponent.Initialize();  // THIS is the key line for tree interaction!
+                    treeComponent.Initialize(generateTop);
                     Destroy(treeTemplate);
                 }
                 // If no tree was spawned, try to spawn a rock
-                else if (Random.value < rockSpawnChance)
+                else if (!isRockDestroyed && Random.value < rockSpawnChance)
                 {
                     GameObject rockPrefab = Random.value < 0.5f ? rockPrefab1 : rockPrefab2;
                     GameObject rock = Instantiate(rockPrefab, worldPosition, Quaternion.Euler(0, 0, Random.Range(0, 360)),
@@ -265,14 +276,7 @@ public class WorldGenerator : MonoBehaviour
         SpriteRenderer stumpRenderer = stump.GetComponent<SpriteRenderer>();
         stumpRenderer.sortingOrder = 0;
 
-        GameObject top = Instantiate(treeTopPrefab, Vector3.zero, Quaternion.identity);
-        top.transform.SetParent(treeObject.transform, false);
-        top.transform.localPosition = Vector3.zero;
-        SpriteRenderer topRenderer = top.GetComponent<SpriteRenderer>();
-        topRenderer.sortingOrder = 2;
-
         treeComponent.stump = stumpRenderer;
-        treeComponent.top = topRenderer;
 
         return treeObject;
     }
@@ -316,4 +320,37 @@ public class WorldGenerator : MonoBehaviour
             }
         }
     }
+
+    // Records when a tree is chopped down (top is destroyed)
+    public void RecordTreeChoppedDown(Vector3 worldPosition)
+    {
+        Vector2Int chunkPosition = GetCurrentChunk(worldPosition);
+        Vector2Int tilePosition = GetTilePosition(worldPosition);
+        if (!chunkModificationData.TryGetValue(chunkPosition, out ChunkData chunkData))
+        {
+            chunkData = new ChunkData();
+            chunkModificationData[chunkPosition] = chunkData;
+        }
+        chunkData.choppedDownTrees.Add(tilePosition);
+    }
+
+    // Records when a rock is destroyed (collected)
+    public void RecordRockDestroyed(Vector3 worldPosition)
+    {
+        Vector2Int chunkPosition = GetCurrentChunk(worldPosition);
+        Vector2Int tilePosition = GetTilePosition(worldPosition);
+        if (!chunkModificationData.TryGetValue(chunkPosition, out ChunkData chunkData))
+        {
+            chunkData = new ChunkData();
+            chunkModificationData[chunkPosition] = chunkData;
+        }
+        chunkData.destroyedRocks.Add(tilePosition);
+    }
+}
+
+public class ChunkData
+{
+    public HashSet<Vector2Int> choppedDownTrees = new HashSet<Vector2Int>();
+    public HashSet<Vector2Int> destroyedRocks = new HashSet<Vector2Int>();
+
 }

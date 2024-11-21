@@ -34,7 +34,7 @@ public class WoodWall : MonoBehaviour
             Vector2 wallSize = spriteRenderer.sprite.bounds.size;
 
             // Main collider setup (for the actual wall)
-            wallCollider.size = wallSize * 0.9f; // Slightly smaller than sprite
+            wallCollider.size = wallSize * 0.19f; // Slightly smaller than sprite was 0.9
 
             // Interaction collider setup (wider area around the wall)
             interactionCollider.size = new Vector2(wallSize.x * 1.5f, wallSize.y * 1.5f);

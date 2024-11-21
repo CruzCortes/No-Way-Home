@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class Rock : MonoBehaviour
@@ -31,6 +29,10 @@ public class Rock : MonoBehaviour
         if (canBePickedUp && Input.GetKeyDown(KeyCode.E) && player != null)
         {
             player.CollectRock(rockType);
+
+            // Record that the rock has been destroyed
+            WorldGenerator.Instance.RecordRockDestroyed(transform.position);
+
             Destroy(gameObject);
         }
     }
