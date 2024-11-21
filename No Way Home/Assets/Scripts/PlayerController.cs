@@ -359,10 +359,18 @@ public class PlayerController : MonoBehaviour
     #endregion
 
     #region Resource Collection
+    public EyeEnemyAI eyeEnemyAI; // Reference to the enemy AI script
+
     public void CollectWood()
     {
         woodCount++;
         Debug.Log($"Collected wood. Total: {woodCount}");
+
+        // Increase enemy aggression
+        if (eyeEnemyAI != null)
+        {
+            eyeEnemyAI.IncreaseAggressionDueToPlayerAction();
+        }
     }
 
     public void CollectRock(int rockType)
@@ -371,6 +379,12 @@ public class PlayerController : MonoBehaviour
         {
             collectedRocks[rockType]++;
             Debug.Log($"Collected rock type {rockType}. Total: {collectedRocks[rockType]}");
+
+            // Increase enemy aggression
+            if (eyeEnemyAI != null)
+            {
+                eyeEnemyAI.IncreaseAggressionDueToPlayerAction();
+            }
         }
     }
     #endregion

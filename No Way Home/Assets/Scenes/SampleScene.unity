@@ -589,7 +589,7 @@ MonoBehaviour:
   maxHealth: 100
   maxHunger: 100
   maxTemperature: 100
-  hungerDecayRate: 0.02
+  hungerDecayRate: 0.1
   healthDecayRate: 5
   temperatureDecayRate: 5
   bodyTemperatureInertia: 0.1
@@ -1644,18 +1644,24 @@ MonoBehaviour:
   detectionRange: 10
   attackRange: 3
   maxDistanceFromStart: 15
+  maxTrackingDistance: 50
   flyingSpeed: 3
-  soarAmplitude: 1
-  soarFrequency: 1.5
-  wanderRadius: 4
+  soarAmplitude: 0.8
+  soarFrequency: 0.8
+  wanderRadius: 10
   maxRotationSpeed: 180
   chargeSpeed: 8
   chargeCooldown: 2
   chargeDistance: 5
   knockbackForce: 5
-  attackProbability: 0.05
+  baseAttackProbability: 0.05
   minDamage: 5
   maxDamage: 20
+  aggressionLevel: 0
+  naturalAggressionIncrease: 0.002
+  aggressionMultiplier: 1
+  maxAggressionLevel: 1
+  environmentalImpactCounter: 0
   oscillationSpeed: 2
   oscillationAmplitude: 0.5
   spiralRadius: 1

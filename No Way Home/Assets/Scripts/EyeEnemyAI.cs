@@ -6,7 +6,8 @@ public class EyeEnemyAI : MonoBehaviour
     [Header("Target Settings")]
     public float detectionRange = 10f;
     public float attackRange = 3f;
-    public float maxDistanceFromStart = 15f;
+    public float maxDistanceFromStart = 15f;  // Original wander radius
+    public float maxTrackingDistance = 50f;   // Larger tracking radius
     private Transform player;
 
     [Header("Movement Settings")]
@@ -21,7 +22,7 @@ public class EyeEnemyAI : MonoBehaviour
     public float chargeCooldown = 3f;
     public float chargeDistance = 3f;
     public float knockbackForce = 5f;
-    public float attackProbability = 0.05f;
+    public float baseAttackProbability = 0.05f;
 
     [Header("Damage Settings")]
     public float minDamage = 5f;
@@ -29,6 +30,13 @@ public class EyeEnemyAI : MonoBehaviour
     private float damageInterval = 0.5f;
     private float lastDamageTime;
     private PlayerStatsManager playerStats;
+
+    [Header("Aggression Settings")]
+    public float aggressionLevel = 0f;              // Starts at 0
+    public float naturalAggressionIncrease = 0.01f; // Increases slowly over time
+    public float aggressionMultiplier = 1f;         // Multiplier based on player's actions
+    public float maxAggressionLevel = 1f;           // Max aggression level
+    public float environmentalImpactCounter = 0f;   // Player's destructive actions
 
     [Header("Flight Pattern Settings")]
     public float oscillationSpeed = 1f;
@@ -64,65 +72,37 @@ public class EyeEnemyAI : MonoBehaviour
 
     private void FindAndSetupPlayer()
     {
-        // First, find ALL objects with Player tag
         GameObject[] playerObjects = GameObject.FindGameObjectsWithTag("Player");
-        Debug.Log($"Found {playerObjects.Length} objects with Player tag");
 
         foreach (GameObject playerObj in playerObjects)
         {
-            Debug.Log($"Checking object: {playerObj.name}");
-
-            // Try to get PlayerStatsManager from this object
             playerStats = playerObj.GetComponent<PlayerStatsManager>();
 
             if (playerStats == null)
             {
-                // If not found, search the entire scene
                 playerStats = GameObject.FindObjectOfType<PlayerStatsManager>();
             }
 
             if (playerStats != null)
             {
                 player = playerObj.transform;
-                Debug.Log("Successfully found PlayerStatsManager!");
                 return;
             }
         }
 
         Debug.LogError("PlayerStatsManager not found in any Player object or scene!");
-        // Log all components on the Player object to help debug
-        if (playerObjects.Length > 0)
-        {
-            Component[] components = playerObjects[0].GetComponents<Component>();
-            Debug.Log("Components on Player object:");
-            foreach (Component comp in components)
-            {
-                Debug.Log($"- {comp.GetType().Name}");
-            }
-        }
-    }
-
-    private string GetGameObjectPath(GameObject obj)
-    {
-        string path = obj.name;
-        Transform parent = obj.transform.parent;
-        while (parent != null)
-        {
-            path = parent.name + "/" + path;
-            parent = parent.parent;
-        }
-        return path;
     }
 
     private void Update()
     {
         flightTime += Time.deltaTime;
 
-        // Check if too far from start position
+        // Increase aggression over time
+        aggressionLevel = Mathf.Min(aggressionLevel + Time.deltaTime * naturalAggressionIncrease * aggressionMultiplier, maxAggressionLevel);
+
         float distanceFromStart = Vector2.Distance(transform.position, startPosition);
         if (distanceFromStart > maxDistanceFromStart)
         {
-            // Gradually return to starting area
             Vector3 directionToStart = (startPosition - transform.position).normalized;
             transform.position += directionToStart * flyingSpeed * Time.deltaTime;
         }
@@ -135,17 +115,28 @@ public class EyeEnemyAI : MonoBehaviour
             {
                 ExecuteChargeAttack();
             }
-            else if (distanceToPlayer <= attackRange && canAttack && Random.value < attackProbability)
+            else if (distanceToPlayer <= attackRange && canAttack && Random.value < baseAttackProbability)
             {
                 StartCoroutine(ChargeAttack());
             }
-            else if (distanceToPlayer <= detectionRange)
-            {
-                FollowPlayerWithMatrixTransform();
-            }
             else
             {
-                WanderWithMatrixTransform();
+                // Decide whether to follow player or wander based on aggression level
+                float followProbability = aggressionLevel; // Higher aggression means more likely to follow
+                if (Random.value < followProbability)
+                {
+                    FollowPlayerWithMatrixTransform();
+                }
+                else
+                {
+                    WanderWithMatrixTransform();
+                }
+
+                // Teleportation based on aggression
+                if (distanceToPlayer > maxTrackingDistance)
+                {
+                    TeleportNearPlayer();
+                }
             }
         }
         else
@@ -155,12 +146,27 @@ public class EyeEnemyAI : MonoBehaviour
         }
     }
 
+    private void TeleportNearPlayer()
+    {
+        if (player == null) return;
+
+        // Teleport to a position near the player but at a distance
+        Vector2 randomDirection = Random.insideUnitCircle.normalized;
+        float teleportDistance = Random.Range(detectionRange, detectionRange + 5f);
+        Vector3 teleportPosition = player.position + (Vector3)(randomDirection * teleportDistance);
+
+        transform.position = teleportPosition;
+        currentVelocity = Vector3.zero;
+        wanderChangeTimer = 0f;
+        targetPosition = GetRandomWanderPoint();
+    }
+
     private void FollowPlayerWithMatrixTransform()
     {
         if (player == null) return;
 
         Vector3 directionToPlayer = (player.position - transform.position).normalized;
-        Vector3 desiredVelocity = directionToPlayer * flyingSpeed;
+        Vector3 desiredVelocity = directionToPlayer * flyingSpeed * (1f + aggressionLevel); // Increase speed with aggression
 
         currentVelocity = Vector3.Lerp(currentVelocity, desiredVelocity, Time.deltaTime * 2f);
 
@@ -187,17 +193,13 @@ public class EyeEnemyAI : MonoBehaviour
         finalPosition += rotationMatrix.MultiplyPoint3x4(oscillation) * 0.3f;
         finalPosition += rotationMatrix.MultiplyPoint3x4(spiralOffset) * 0.2f;
 
-        if (Vector2.Distance(finalPosition, startPosition) <= maxDistanceFromStart)
-        {
-            transform.position = finalPosition;
-        }
-
+        transform.position = finalPosition;
         transform.rotation = Quaternion.Euler(0, 0, currentRotation);
     }
 
     private void WanderWithMatrixTransform()
     {
-        wanderChangeTimer += Time.deltaTime;
+        wanderChangeTimer += Time.deltaTime * (1f - aggressionLevel); // Wander less as aggression increases
         if (wanderChangeTimer >= wanderChangeInterval)
         {
             targetPosition = GetRandomWanderPoint();
@@ -225,11 +227,7 @@ public class EyeEnemyAI : MonoBehaviour
         Vector3 finalPosition = transform.position + (currentVelocity * Time.deltaTime);
         finalPosition += rotationMatrix.MultiplyPoint3x4(soarOffset) * 0.5f;
 
-        if (Vector2.Distance(finalPosition, startPosition) <= maxDistanceFromStart)
-        {
-            transform.position = finalPosition;
-        }
-
+        transform.position = finalPosition;
         transform.rotation = Quaternion.Euler(0, 0, currentRotation);
     }
 
@@ -307,29 +305,22 @@ public class EyeEnemyAI : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        Debug.Log($"Trigger Enter with: {other.gameObject.name}");
-
         if (other.CompareTag("Player"))
         {
-            Debug.Log("Player tag detected!");
-            // Try one more time to find PlayerStatsManager directly on the colliding object
             playerStats = other.gameObject.GetComponent<PlayerStatsManager>();
 
             if (playerStats == null)
             {
-                Debug.Log("Searching for PlayerStatsManager in parent...");
                 playerStats = other.gameObject.GetComponentInParent<PlayerStatsManager>();
             }
 
             if (playerStats == null)
             {
-                Debug.Log("Searching for PlayerStatsManager in entire scene...");
                 playerStats = GameObject.FindObjectOfType<PlayerStatsManager>();
             }
 
             if (playerStats != null && isCharging)
             {
-                Debug.Log("Found PlayerStatsManager, attempting to deal damage...");
                 DealDamageToPlayer();
             }
 
@@ -359,14 +350,8 @@ public class EyeEnemyAI : MonoBehaviour
         if (playerStats != null)
         {
             float damage = Random.Range(minDamage, maxDamage);
-            Debug.Log($"Dealing {damage} damage to player");
             playerStats.TakeDamage(damage);
             lastDamageTime = Time.time;
-            Debug.Log("Damage dealt successfully!");
-        }
-        else
-        {
-            Debug.LogError("Cannot deal damage - PlayerStatsManager is null!");
         }
     }
 
@@ -378,5 +363,14 @@ public class EyeEnemyAI : MonoBehaviour
         Gizmos.DrawWireSphere(transform.position, attackRange);
         Gizmos.color = Color.blue;
         Gizmos.DrawWireSphere(transform.position, maxDistanceFromStart);
+        Gizmos.color = Color.magenta;
+        Gizmos.DrawWireSphere(transform.position, maxTrackingDistance);
+    }
+
+    // Method to be called when the player destroys something in the environment
+    public void IncreaseAggressionDueToPlayerAction()
+    {
+        environmentalImpactCounter += 0.1f; // Increment counter slightly
+        aggressionMultiplier = 1f + environmentalImpactCounter; // Adjust aggression multiplier
     }
 }
