@@ -76,6 +76,11 @@ public class CraftingUIManager : MonoBehaviour
         }
     }
 
+    public bool IsUIVisible()
+    {
+        return isVisible;
+    }
+
     private void TogglePanel()
     {
         if (isVisible) HidePanel();
