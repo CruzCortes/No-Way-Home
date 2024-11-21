@@ -59,7 +59,6 @@ public class PlayerController : MonoBehaviour
     private HotBarManager hotBarManager;
     private string currentSelectedItem;
 
-
     [Header("Food Inventory")]
     public int foodCount = 0;  // Add this for food tracking
 
